@@ -5,8 +5,13 @@ export type gameDataType = {
     p1_y : number,
     ballX : number,
     ballY : number,
+    ballMoveX : number,
+    ballMoveY : number,
     p0_prepared : boolean,
-    p1_prepared : boolean,    
+    p1_prepared : boolean,  
+    roomName : string,  
+    timer : any,
+    callback : (roomName : string) => void
 }
 
 export type GameDataMap = {
@@ -14,6 +19,12 @@ export type GameDataMap = {
 }
 
 export type StartGameParamType = {
-    roomName : string
+    roomName : string,
     playerNo : string
+}
+
+export type gameActionParamType = {
+    roomName : string,
+    playerNo : string,
+    action : string
 }

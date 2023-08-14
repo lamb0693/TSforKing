@@ -5,7 +5,7 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 
 import { gameDataType } from "./gameDataType";
-import { GameDataMap, StartGameParamType } from "./gameDataType";
+import { GameDataMap, StartGameParamType, gameActionParamType } from "./gameDataType";
 
 //*********game 관련 data ********** */
 const mapGameData : GameDataMap = {}
@@ -130,6 +130,15 @@ ping.on('connection', (socket) => {
         //socket.emit('ping_rooms_info', pingRoomsTransfer) // callbakc으로 대치
     })  
 
+    const endGame = (plyaerNo : string, roonName : string) => {
+        let data : gameDataType = mapGameData[roonName]
+        
+    /*** endGame 처리 해야 */
+        // clearInterval(timerId)
+        // console.log("player" + playerNo + " Win")
+        // io.emit('winner', playerNo)
+    }
+
     const prepareGame = (roomName) => {
         //===== gameData가 referece var 이냐 새로 만드나 ? 나중에 확인후 수정 =========//
         let gameData : gameDataType = {
@@ -139,8 +148,31 @@ ping.on('connection', (socket) => {
             p1_y: 580,
             ballX: 200,
             ballY: 200,
+            ballMoveX : 5,
+            ballMoveY : 5,
             p0_prepared: false,
             p1_prepared: false,
+            roomName : roomName,
+            callback: () => {
+                let data : gameDataType = mapGameData[roomName]
+
+                data.ballX += data.ballMoveX
+                if(data.ballX > 390 || data.ballX < 20) data.ballMoveX *= (-1)
+                data.ballY += data.ballMoveY
+                if(data.ballY> 590 || data.ballY < 120) data.ballMoveY *= (-1)
+                if(data.ballY>= 565 && data.ballY <= 575) {
+                  if( (data.p1_x> (data.ballX -100)) && (data.p1_x < data.ballX) ) data.ballMoveY *= (-1)
+                }
+                if(data.ballY>= 125 && data.ballY <= 135) {
+                  if( (gameData.p0_x > (data.ballX -100)) && (data.p0_x < data.ballX) ) data.ballMoveY *= (-1)
+                }
+                if(data.ballY < 120) endGame('player1', data.roomName)
+                if(gameData.ballY > 580) endGame('player0', data.roomName)
+
+                //console.log("callback : " + roomName)
+                ping.to(roomName).emit('gameData', data)
+            },
+            timer : null
         };    
     
         mapGameData[roomName] = gameData
@@ -178,7 +210,38 @@ ping.on('connection', (socket) => {
         if(param.playerNo === 'player1') myGameData.p1_prepared = true
         if(myGameData.p0_prepared==true && myGameData.p1_prepared == true){
             console.log(param.roomName + "Start game.... ")
+            myGameData.timer = setInterval(myGameData.callback, 100)
         }
+    })
+
+    socket.on('gameData', (param : gameActionParamType ) => {
+        const data : gameDataType = mapGameData[param.roomName]
+        console.log(param)
+
+        switch(param.action){
+            case 'btnLeftClicked' :
+                if(param.playerNo==='player0'){
+                    //console.log("0 l")
+                    if(data.p0_x > 20) data.p0_x -= 10
+                } else if(param.playerNo==='player1') {
+                    if(data.p1_x > 20) data.p1_x -=10;
+                    //console.log("1 l")
+                }  
+                break;
+            case 'btnRightClicked' :
+                if(param.playerNo==='player0'){
+                    //console.log("0 r")
+                    if(data.p0_x <500 ) data.p0_x += 10
+                } else if(param.playerNo==='player1') {
+                    if(data.p1_x < 500) data.p1_x +=10;
+                    //console.log("1 r")
+                } 
+                break;
+            case 'stop' :
+                clearInterval(data.timer)
+                break;
+        }
+        console.log(data)
     })
 
 
