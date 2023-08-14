@@ -1,5 +1,5 @@
 const { io } = require("socket.io");
-import { gameDataType, StartGameParamType } from "./gameDataType";
+import { gameDataType, StartGameParamType, gameActionParamType } from "./gameDataType";
 
 const strRoomName = document.getElementById("divRoomName").textContent
 const plyaerNo = document.getElementById("divPlayerNo").textContent
@@ -8,7 +8,6 @@ const p0_game_paddle = document.getElementById("p0_game_paddle")
 const p1_game_paddle = document.getElementById("p1_game_paddle")
 const game_ball = document.getElementById("game_ball")
 const btnStart = document.getElementById("start")
-
 
 let gameData : gameDataType = null
 
@@ -32,6 +31,7 @@ const updateGameBoard = () :void  => {
 // // ******* start button 클릭하면 server로 전송  ******
 const onStartButtonClicked = (event) : void => {
     event.preventDefault()
+    btnStart.setAttribute("disabled", "true")
     const param : StartGameParamType  = {
         roomName :strRoomName, 
         playerNo :plyaerNo
@@ -40,29 +40,36 @@ const onStartButtonClicked = (event) : void => {
 }
 
 btnStart.addEventListener('click', onStartButtonClicked)
-//
-// const onBtnLeftClikced = (event) => {
-//     event.preventDefault()
-//     cknull(socket, "socket")
-//     socket.emit('gameData', playerNo + 'btn_left')
-// }
-//
-// // ******* left button 관련 설정  ******
-// const btnLeft = document.getElementById("toLeft")
-// cknull(btnLeft, "btnLeft")
-// btnLeft.addEventListener('click', onBtnLeftClikced)
-//
-// const onBtnRightClikced = (event) => {
-//     event.preventDefault()
-//     cknull(socket, "socket")
-//     socket.emit('gameData', playerNo + 'btn_right')
-// }
-//
-// // ******* Right button 관련 설정  ******
-// const btnRight = document.getElementById("toRight")
-// cknull(btnRight, "btnRight")
-// btnRight.addEventListener('click', onBtnRightClikced)
-//
+
+const onBtnLeftClikced = (event) => {
+    event.preventDefault()
+    const data : gameActionParamType = {
+        roomName : strRoomName,
+        playerNo : plyaerNo, 
+        action : 'btnLeftClicked'
+    }
+    socket.emit('gameData', data)
+}
+
+// ******* left button 관련 설정  ******
+const btnLeft = document.getElementById("toLeft")
+btnLeft.addEventListener('click', onBtnLeftClikced)
+
+const onBtnRightClikced = (event) => {
+    event.preventDefault()
+    const data : gameActionParamType = {
+        roomName : strRoomName,
+        playerNo : plyaerNo, 
+        action : 'btnRightClicked'
+    }
+
+    socket.emit('gameData', data)
+}
+
+// ******* Right button 관련 설정  ******
+const btnRight = document.getElementById("toRight")
+btnRight.addEventListener('click', onBtnRightClikced)
+
 // const onStopButtonClikced = (event) => {
 //     event.preventDefault()
 //     cknull(socket, "socket")
