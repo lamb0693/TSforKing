@@ -1,5 +1,5 @@
 const { io } = require("socket.io");
-import { gameDataType, StartGameParamType, gameActionParamType } from "./gameDataType";
+import { gameDataType, StartGameParamType, gameActionParamType, ChatParaType } from "./gameDataType";
 
 const strRoomName = document.getElementById("divRoomName").textContent
 const playerNo = document.getElementById("divPlayerNo").textContent
@@ -9,17 +9,45 @@ const p1_game_paddle = document.getElementById("p1_game_paddle")
 const game_ball = document.getElementById("game_ball")
 const btnStart = document.getElementById("start")
 
+const btnSendMessage = document.getElementById("btnSendMessage")
+const txtChatMsg:HTMLInputElement  = <HTMLInputElement>document.getElementById("txtChatMsg")
+const taChatMsg:HTMLTextAreaElement = <HTMLTextAreaElement>document.getElementById("taChatMsg")
 let gameData : gameDataType = null
+
+const Cons = {
+    LEFT : 10,
+    RIGHT : 410,
+    TOP : 10,
+    BOTTOM : 510,
+    PADDLE_SIZE : 80,
+    P0_TOP : 40, // 30-50
+    P1_TOP : 480, // 470-490
+    PAD_HALF_THICK : 10, 
+    BALL_RADIUS : 10
+}
 
 // // *******화면을 현재 gameData로 update ******
 const updateGameBoard = () :void  => {
     p0_game_paddle.style.left = gameData.p0_x + 'px'
-    p0_game_paddle.style.top = gameData.p0_y + 'px'
+    p0_game_paddle.style.top = (gameData.p0_y - Cons.PAD_HALF_THICK) + 'px'
     p1_game_paddle.style.left = gameData.p1_x + 'px'
-    p1_game_paddle.style.top = gameData.p1_y + 'px'
-    game_ball.style.left = gameData.ballX + 'px'
-    game_ball.style.top = gameData.ballY + 'px'
+    p1_game_paddle.style.top = (gameData.p1_y - Cons.PAD_HALF_THICK) + 'px'
+    game_ball.style.left = (gameData.ballX - Cons.BALL_RADIUS) + 'px'
+    game_ball.style.top = (gameData.ballY - Cons.BALL_RADIUS) + 'px'
 }
+
+const sendChatMessage = (event) => {
+    event.preventDefault();
+    const param : ChatParaType = {
+        rommName : strRoomName,
+        playerNo : playerNo,
+        message : txtChatMsg.value
+    }
+    socket.emit('chatData', param)
+}
+btnSendMessage.addEventListener('click', sendChatMessage); 
+
+
 
 // // ******* start button 클릭하면 server로 전송  ******
 const onStartButtonClicked = (event) : void => {
@@ -120,10 +148,11 @@ if(playerNo === 'player1'){
 //
 //
 // // ******* 채팅 메시지 emit  ******
-// socket.on('chat message', function(msg) {
-//     console.log("chat message", msg)
-// });
-//
+socket.on('chat message', function(msg:string) {
+    taChatMsg.innerHTML += taChatMsg.innerHTML
+    console.log("chat message", msg)
+});
+
 
 socket.on('prepareForStart', function(msg : gameDataType) {
     console.log("game data in prepareForStart", msg)

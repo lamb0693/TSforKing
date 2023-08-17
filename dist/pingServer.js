@@ -3,6 +3,17 @@ const app = express();
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
+const Cons = {
+    LEFT: 10,
+    RIGHT: 410,
+    TOP: 10,
+    BOTTOM: 510,
+    PADDLE_SIZE: 80,
+    P0_TOP: 40,
+    P1_TOP: 480,
+    PAD_HALF_THICK: 10,
+    BALL_RADIUS: 10
+};
 //*********game 관련 data ********** */
 const mapGameData = {};
 const ioServer = new Server(server, {
@@ -139,9 +150,9 @@ ping.on('connection', (socket) => {
             let gameData = {
                 gameId: 'ping' + Date.now(),
                 p0_x: 200,
-                p0_y: 130,
+                p0_y: Cons.P0_TOP,
                 p1_x: 200,
-                p1_y: 580,
+                p1_y: Cons.P1_TOP,
                 ballX: 200,
                 ballY: 200,
                 ballMoveX: 5,
@@ -151,24 +162,31 @@ ping.on('connection', (socket) => {
                 roomName: roomName,
                 callback: () => {
                     let data = mapGameData[roomName];
+                    // 그릴때 볼 패들-Height는 중심을 기준으로 그림, 패들-width는 현 pos에서 우측으로 그림  을 참고해서
+                    // 수평 이동
                     data.ballX += data.ballMoveX;
-                    if (data.ballX > 390 || data.ballX < 20)
+                    if ((data.ballX + Cons.BALL_RADIUS) > Cons.RIGHT || (data.ballX - Cons.BALL_RADIUS) < Cons.LEFT)
                         data.ballMoveX *= (-1);
+                    // 수직이동 아래 벽 체크 - 끝이니
                     data.ballY += data.ballMoveY;
-                    if (data.ballY > 590 || data.ballY < 120)
+                    if ((data.ballY + Cons.BALL_RADIUS) > Cons.BOTTOM || (data.ballY - Cons.BALL_RADIUS) < Cons.TOP)
                         data.ballMoveY *= (-1);
-                    if (data.ballY >= 565 && data.ballY <= 575) {
-                        if ((data.p1_x > (data.ballX - 100)) && (data.p1_x < data.ballX))
+                    // player1 패들 체크  하부 패들
+                    if ((data.ballY + Cons.BALL_RADIUS) > (Cons.P1_TOP - Cons.PAD_HALF_THICK)) { //볼 하부 > 패들 상부  통과후는 게임 종료 됨
+                        if (data.ballX > gameData.p1_x && (data.ballX < data.p1_x + Cons.PADDLE_SIZE))
                             data.ballMoveY *= (-1);
                     }
-                    if (data.ballY >= 125 && data.ballY <= 135) {
-                        if ((gameData.p0_x > (data.ballX - 100)) && (data.p0_x < data.ballX))
+                    // player0 패들 체크 상부 패들
+                    if ((data.ballY - Cons.BALL_RADIUS) < (Cons.P0_TOP + Cons.PAD_HALF_THICK)) { //볼 상부 < 패들 하부  통과후는 게임 종료 됨
+                        if (data.ballX > gameData.p0_x && (data.ballX < data.p0_x + Cons.PADDLE_SIZE))
                             data.ballMoveY *= (-1);
                     }
-                    if (data.ballY < 120)
+                    // 놓치면 게임 종료
+                    if ((data.ballY) < (Cons.P0_TOP - Cons.PAD_HALF_THICK))
                         endGame('player1', data.roomName);
-                    if (gameData.ballY > 580)
+                    if ((data.ballY) > (Cons.P1_TOP + Cons.PAD_HALF_THICK))
                         endGame('player0', data.roomName);
+                    console.log(data.ballY + Cons.BALL_RADIUS, Cons.P0_TOP - Cons.PAD_HALF_THICK, Cons.P1_TOP + Cons.PAD_HALF_THICK);
                     //console.log("callback : " + roomName)
                     ping.to(roomName).emit('gameData', data);
                 },

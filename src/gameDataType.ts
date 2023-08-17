@@ -31,3 +31,9 @@ export type gameActionParamType = {
     playerNo : string,
     action : string
 }
+
+export type ChatParaType = {
+    rommName : string,
+    playerNo : string,
+    message : string
+}

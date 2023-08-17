@@ -1,4 +1,4 @@
-//const { io } = require("socket.io");
+const { io } = require("socket.io");
 const strRoomName = document.getElementById("divRoomName").textContent;
 const playerNo = document.getElementById("divPlayerNo").textContent;
 const p0_game_paddle = document.getElementById("p0_game_paddle");
@@ -6,14 +6,25 @@ const p1_game_paddle = document.getElementById("p1_game_paddle");
 const game_ball = document.getElementById("game_ball");
 const btnStart = document.getElementById("start");
 let gameData = null;
+const Cons = {
+    LEFT: 10,
+    RIGHT: 410,
+    TOP: 10,
+    BOTTOM: 510,
+    PADDLE_SIZE: 80,
+    P0_TOP: 40,
+    P1_TOP: 480,
+    PAD_HALF_THICK: 10,
+    BALL_RADIUS: 10
+};
 // // *******화면을 현재 gameData로 update ******
 const updateGameBoard = () => {
     p0_game_paddle.style.left = gameData.p0_x + 'px';
-    p0_game_paddle.style.top = gameData.p0_y + 'px';
+    p0_game_paddle.style.top = (gameData.p0_y - Cons.PAD_HALF_THICK) + 'px';
     p1_game_paddle.style.left = gameData.p1_x + 'px';
-    p1_game_paddle.style.top = gameData.p1_y + 'px';
-    game_ball.style.left = gameData.ballX + 'px';
-    game_ball.style.top = gameData.ballY + 'px';
+    p1_game_paddle.style.top = (gameData.p1_y - Cons.PAD_HALF_THICK) + 'px';
+    game_ball.style.left = (gameData.ballX - Cons.BALL_RADIUS) + 'px';
+    game_ball.style.top = (gameData.ballY - Cons.BALL_RADIUS) + 'px';
 };
 // // ******* start button 클릭하면 server로 전송  ******
 const onStartButtonClicked = (event) => {
@@ -131,4 +142,4 @@ socket.on('winner', function (winner) {
     else
         alert(" 패 배 ");
 });
-//export {};
+export {};
