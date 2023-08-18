@@ -1,10 +1,19 @@
 const { io } = require("socket.io");
+let playerNo;
 const strRoomName = document.getElementById("divRoomName").textContent;
-const playerNo = document.getElementById("divPlayerNo").textContent;
+if (document.getElementById("divPlayerNo0") != null) {
+    playerNo = document.getElementById("divPlayerNo0").textContent;
+}
+else {
+    playerNo = document.getElementById("divPlayerNo1").textContent;
+}
 const p0_game_paddle = document.getElementById("p0_game_paddle");
 const p1_game_paddle = document.getElementById("p1_game_paddle");
 const game_ball = document.getElementById("game_ball");
 const btnStart = document.getElementById("start");
+const btnSendMessage = document.getElementById("btnSendMessage");
+const txtChatMsg = document.getElementById("txtChatMsg");
+const taChatMsg = document.getElementById("taChatMsg");
 let gameData = null;
 const Cons = {
     LEFT: 10,
@@ -26,6 +35,17 @@ const updateGameBoard = () => {
     game_ball.style.left = (gameData.ballX - Cons.BALL_RADIUS) + 'px';
     game_ball.style.top = (gameData.ballY - Cons.BALL_RADIUS) + 'px';
 };
+const sendChatMessage = (event) => {
+    event.preventDefault();
+    const param = {
+        rommName: strRoomName,
+        playerNo: playerNo,
+        message: txtChatMsg.value
+    };
+    txtChatMsg.value = "";
+    socket.emit('chatData', param);
+};
+btnSendMessage.addEventListener('click', sendChatMessage);
 // // ******* start button 클릭하면 server로 전송  ******
 const onStartButtonClicked = (event) => {
     event.preventDefault();
@@ -112,10 +132,10 @@ if (playerNo === 'player1') {
 //
 //
 // // ******* 채팅 메시지 emit  ******
-// socket.on('chat message', function(msg) {
-//     console.log("chat message", msg)
-// });
-//
+socket.on('chat message', function (msg) {
+    taChatMsg.innerHTML = taChatMsg.innerHTML + msg + '&#10';
+    console.log("chat message", msg);
+});
 socket.on('prepareForStart', function (msg) {
     console.log("game data in prepareForStart", msg);
     gameData = msg;

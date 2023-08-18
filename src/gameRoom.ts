@@ -1,8 +1,13 @@
 const { io } = require("socket.io");
 import { gameDataType, StartGameParamType, gameActionParamType, ChatParaType } from "./gameDataType";
 
+let playerNo :string
 const strRoomName = document.getElementById("divRoomName").textContent
-const playerNo = document.getElementById("divPlayerNo").textContent
+if( document.getElementById("divPlayerNo0") != null ){
+    playerNo = document.getElementById("divPlayerNo0").textContent
+} else {
+    playerNo = document.getElementById("divPlayerNo1").textContent
+}
 
 const p0_game_paddle = document.getElementById("p0_game_paddle")
 const p1_game_paddle = document.getElementById("p1_game_paddle")
@@ -43,6 +48,7 @@ const sendChatMessage = (event) => {
         playerNo : playerNo,
         message : txtChatMsg.value
     }
+    txtChatMsg.value = ""
     socket.emit('chatData', param)
 }
 btnSendMessage.addEventListener('click', sendChatMessage); 
@@ -149,8 +155,8 @@ if(playerNo === 'player1'){
 //
 // // ******* 채팅 메시지 emit  ******
 socket.on('chat message', function(msg:string) {
-    taChatMsg.innerHTML += taChatMsg.innerHTML
-    console.log("chat message", msg)
+    taChatMsg.innerHTML = taChatMsg.innerHTML + msg + '&#10';
+    console.log("chat message", msg);
 });
 
 

@@ -72,16 +72,17 @@ ping.on('connection', (socket) => {
     // map에 socketid를 넣어야 하 ㄹ듯 socketid를 이용해 
     socket.on('disconnect', () => {
         console.log('user disconnected');
-        ping.emit('chat message', "1명 나갔어요");
         // 해당 socketid를 가진 gameData가 있는지 확인하고 받아옴
         // 게임 종료 처리를 함
         for (const [key, value] of Object.entries(mapGameData)) {
             if (value.socketid0 === socket.id) {
                 console.log("player0 나감 종료 처리 필요함");
+                ping.to(value.roomName).emit('chat message', "상대방이 나갔습니다");
                 endGame('player1', value.roomName);
             }
             else if (value.socketid1 === socket.id) {
                 console.log("player1 나감 종료 처리 필요함");
+                ping.to(value.roomName).emit('chat message', "상대방이 나갔습니다");
                 endGame('player0', value.roomName);
             }
         }
@@ -172,12 +173,12 @@ ping.on('connection', (socket) => {
                     if ((data.ballY + Cons.BALL_RADIUS) > Cons.BOTTOM || (data.ballY - Cons.BALL_RADIUS) < Cons.TOP)
                         data.ballMoveY *= (-1);
                     // player1 패들 체크  하부 패들
-                    if ((data.ballY + Cons.BALL_RADIUS) > (Cons.P1_TOP - Cons.PAD_HALF_THICK)) { //볼 하부 > 패들 상부  통과후는 게임 종료 됨
+                    if (data.ballMoveY > 0 && (data.ballY + Cons.BALL_RADIUS) > (Cons.P1_TOP - Cons.PAD_HALF_THICK)) { //볼 하부 > 패들 상부  통과후는 게임 종료 됨
                         if (data.ballX > gameData.p1_x && (data.ballX < data.p1_x + Cons.PADDLE_SIZE))
                             data.ballMoveY *= (-1);
                     }
-                    // player0 패들 체크 상부 패들
-                    if ((data.ballY - Cons.BALL_RADIUS) < (Cons.P0_TOP + Cons.PAD_HALF_THICK)) { //볼 상부 < 패들 하부  통과후는 게임 종료 됨
+                    // player0 패들 체크 상부 패들  올라가는 경우에만
+                    if (data.ballMoveY < 0 && (data.ballY - Cons.BALL_RADIUS) < (Cons.P0_TOP + Cons.PAD_HALF_THICK)) { //볼 상부 < 패들 하부  통과후는 게임 종료 됨
                         if (data.ballX > gameData.p0_x && (data.ballX < data.p0_x + Cons.PADDLE_SIZE))
                             data.ballMoveY *= (-1);
                     }
@@ -281,24 +282,28 @@ ping.on('connection', (socket) => {
             case 'btnLeftClicked':
                 if (param.playerNo === 'player0') {
                     //console.log("0 l")
-                    if (data.p0_x > 20)
-                        data.p0_x -= 10;
+                    data.p0_x -= 10;
+                    if (data.p0_x < Cons.LEFT)
+                        data.p0_x = Cons.LEFT;
                 }
                 else if (param.playerNo === 'player1') {
-                    if (data.p1_x > 20)
-                        data.p1_x -= 10;
+                    data.p1_x -= 10;
+                    if (data.p1_x < Cons.LEFT)
+                        data.p1_x = Cons.LEFT;
                     //console.log("1 l")
                 }
                 break;
             case 'btnRightClicked':
                 if (param.playerNo === 'player0') {
                     //console.log("0 r")
-                    if (data.p0_x < 400)
-                        data.p0_x += 10;
+                    data.p0_x += 10;
+                    if (data.p0_x + Cons.PADDLE_SIZE > Cons.RIGHT)
+                        data.p0_x = Cons.RIGHT - Cons.PADDLE_SIZE;
                 }
                 else if (param.playerNo === 'player1') {
-                    if (data.p1_x < 400)
-                        data.p1_x += 10;
+                    data.p1_x += 10;
+                    if (data.p1_x + Cons.PADDLE_SIZE > Cons.RIGHT)
+                        data.p1_x = Cons.RIGHT - Cons.PADDLE_SIZE;
                     //console.log("1 r")
                 }
                 break;
@@ -309,8 +314,8 @@ ping.on('connection', (socket) => {
         console.log(data);
     });
     // ********* CHAT MESSAGE EVENT ******************//
-    socket.on('chat message', (msg) => {
-        ping.emit('chat message', msg);
+    socket.on('chatData', (param) => {
+        ping.to(param.rommName).emit('chat message', param.playerNo + ':' + param.message);
     });
 });
 server.listen(3000, () => {
