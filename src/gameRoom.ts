@@ -1,32 +1,59 @@
 const { io } = require("socket.io");
-import { gameDataType, StartGameParamType, gameActionParamType } from "./gameDataType";
+import { gameDataType, StartGameParamType, gameActionParamType, ChatParaType } from "./gameDataType";
 
+let playerNo :string
 const strRoomName = document.getElementById("divRoomName").textContent
-const plyaerNo = document.getElementById("divPlayerNo").textContent
+if( document.getElementById("divPlayerNo0") != null ){
+    playerNo = document.getElementById("divPlayerNo0").textContent
+} else {
+    playerNo = document.getElementById("divPlayerNo1").textContent
+}
 
 const p0_game_paddle = document.getElementById("p0_game_paddle")
 const p1_game_paddle = document.getElementById("p1_game_paddle")
 const game_ball = document.getElementById("game_ball")
 const btnStart = document.getElementById("start")
 
+const btnSendMessage = document.getElementById("btnSendMessage")
+const txtChatMsg:HTMLInputElement  = <HTMLInputElement>document.getElementById("txtChatMsg")
+const taChatMsg:HTMLTextAreaElement = <HTMLTextAreaElement>document.getElementById("taChatMsg")
 let gameData : gameDataType = null
 
+const Cons = {
+    LEFT : 10,
+    RIGHT : 410,
+    TOP : 10,
+    BOTTOM : 510,
+    PADDLE_SIZE : 80,
+    P0_TOP : 40, // 30-50
+    P1_TOP : 480, // 470-490
+    PAD_HALF_THICK : 10, 
+    BALL_RADIUS : 10
+}
 
-
-// // *******게임 데이타 관련 설정******
-// // ******* 접속시 바로 데이터 받는 것으로 고치자
-// let gameData = null
-// const game_paddle = document.getElementById("game_paddle")
-//
 // // *******화면을 현재 gameData로 update ******
 const updateGameBoard = () :void  => {
     p0_game_paddle.style.left = gameData.p0_x + 'px'
-    p0_game_paddle.style.top = gameData.p0_y + 'px'
+    p0_game_paddle.style.top = (gameData.p0_y - Cons.PAD_HALF_THICK) + 'px'
     p1_game_paddle.style.left = gameData.p1_x + 'px'
-    p1_game_paddle.style.top = gameData.p1_y + 'px'
-    game_ball.style.left = gameData.ballX + 'px'
-    game_ball.style.top = gameData.ballY + 'px'
+    p1_game_paddle.style.top = (gameData.p1_y - Cons.PAD_HALF_THICK) + 'px'
+    game_ball.style.left = (gameData.ballX - Cons.BALL_RADIUS) + 'px'
+    game_ball.style.top = (gameData.ballY - Cons.BALL_RADIUS) + 'px'
 }
+
+const sendChatMessage = (event) => {
+    event.preventDefault();
+    const param : ChatParaType = {
+        rommName : strRoomName,
+        playerNo : playerNo,
+        message : txtChatMsg.value
+    }
+    txtChatMsg.value = ""
+    socket.emit('chatData', param)
+}
+btnSendMessage.addEventListener('click', sendChatMessage); 
+
+
 
 // // ******* start button 클릭하면 server로 전송  ******
 const onStartButtonClicked = (event) : void => {
@@ -34,7 +61,7 @@ const onStartButtonClicked = (event) : void => {
     btnStart.setAttribute("disabled", "true")
     const param : StartGameParamType  = {
         roomName :strRoomName, 
-        playerNo :plyaerNo
+        playerNo :playerNo
     }
     socket.emit('startGame', param)
 }
@@ -45,7 +72,7 @@ const onBtnLeftClikced = (event) => {
     event.preventDefault()
     const data : gameActionParamType = {
         roomName : strRoomName,
-        playerNo : plyaerNo, 
+        playerNo : playerNo, 
         action : 'btnLeftClicked'
     }
     socket.emit('gameData', data)
@@ -59,7 +86,7 @@ const onBtnRightClikced = (event) => {
     event.preventDefault()
     const data : gameActionParamType = {
         roomName : strRoomName,
-        playerNo : plyaerNo, 
+        playerNo : playerNo, 
         action : 'btnRightClicked'
     }
 
@@ -70,18 +97,15 @@ const onBtnRightClikced = (event) => {
 const btnRight = document.getElementById("toRight")
 btnRight.addEventListener('click', onBtnRightClikced)
 
-// const onStopButtonClikced = (event) => {
-//     event.preventDefault()
-//     cknull(socket, "socket")
-//     socket.emit('gameData', playerNo + 'stop')
-// }
-//
-// // ******* Stop button 관련 설정  ******
-// const btnStop = document.getElementById("stopGame")
-// cknull(btnStop, "btnStop")
-// btnStop.addEventListener('click', onStopButtonClikced)
-//
-//
+const onStopButtonClikced = (event) => {
+    event.preventDefault()
+    socket.emit('stopGame', playerNo, strRoomName)
+}
+
+// ******* Stop button 관련 설정  ******
+const btnStop = document.getElementById("stopGame")
+btnStop.addEventListener('click', onStopButtonClikced)
+
 
 
 // ******* 게임 서버 접속  ******
@@ -99,7 +123,7 @@ const makeRoomCallBack = (result :string, strRoomName : string) => {
     }
 }
 
-const joinRoomCallBack = (result : string, strRoomName : string) => {
+const joinRoomCallBack = (result : string, strRoomName : string) : void => {
     console.log('joinRoomCallback 실행 : ', result)
     if(result === 'success') {
         alert(strRoomName + "방에 조인하였습니다")
@@ -114,15 +138,15 @@ const joinRoomCallBack = (result : string, strRoomName : string) => {
 }
 
 // make room에서 왔으면
-if(plyaerNo === 'player0'){
+if(playerNo === 'player0'){
     // 이름의 방을 만든다
-    socket.emit('ping_create_room', strRoomName, (result : string) => {
+    socket.emit('ping_create_room_from_gameroom', strRoomName, (result : string) => {
         makeRoomCallBack(result, strRoomName )
     })
 }
 
 //join에서 왔으면 이름의 방에 join하고 server에서 prepareGame()
-if(plyaerNo === 'player1'){
+if(playerNo === 'player1'){
     socket.emit('ping_join_room_from_gameroom', strRoomName, (result : string) => {
         joinRoomCallBack(result, strRoomName)
     })
@@ -130,15 +154,12 @@ if(plyaerNo === 'player1'){
 //
 //
 // // ******* 채팅 메시지 emit  ******
-// socket.on('chat message', function(msg) {
-//     console.log("chat message", msg)
-// });
-//
-// // ********* 서버 풀이면
-// socket.on('serverFull', function(msg) {
-//     alert(msg)
-// });
-//
+socket.on('chat message', function(msg:string) {
+    taChatMsg.innerHTML = taChatMsg.innerHTML + msg + '&#10';
+    console.log("chat message", msg);
+});
+
+
 socket.on('prepareForStart', function(msg : gameDataType) {
     console.log("game data in prepareForStart", msg)
     gameData = msg  
@@ -146,6 +167,15 @@ socket.on('prepareForStart', function(msg : gameDataType) {
     btnStart.removeAttribute('disabled')
 });
 
+socket.on('started', () => {
+    btnStop.removeAttribute('disabled')
+})
+
+socket.on('stopped', (playerno:string) => {
+    alert(playerno + " stooped Game 준비되면 Start Button을 누르세요")
+    btnStart.removeAttribute('disabled')
+    btnStop.setAttribute('disabled', 'true')
+})
 
 // // ******* 받은 gameData 처리 => 화면 updata  ******
 socket.on('gameData', function(msg : gameDataType) {
@@ -153,26 +183,8 @@ socket.on('gameData', function(msg : gameDataType) {
     gameData = msg
     updateGameBoard()
 });
-//
-// // ******* 받은 접속자 list  ******
-// socket.on('clients', function(msg) {
-//     console.log("clients", msg)
-// });
-//
-// socket.on('player', function(msg) {
-//     if(playerNo == -1) {
-//         playerNo = msg
-//         player_no.innerHTML = "Player" + msg
-//     }
-// })
-//
-// socket.on('winner', function(msg) {
-//     if(playerNo == msg) alert(" 승 리 ")
-//     else alert(" 패 배 ")
-//
-// })
 
-// *********** 다 정리 되었으면 게임 화면 update
-// ********* 초기 데이터를 서버에서 받는 것으로 고치자
-//*********인삿말 대신 받자
-//updateGameBoard()  // 인사말로 gameData가 옴
+socket.on('winner', function(winner : string) {
+    if(playerNo === winner) alert(" 승 리 ")
+    else alert(" 패 배 ")
+})

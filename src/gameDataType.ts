@@ -1,4 +1,5 @@
 export type gameDataType = {
+    gameId : string,
     p0_x : number,
     p0_y : number,
     p1_x : number,
@@ -11,7 +12,9 @@ export type gameDataType = {
     p1_prepared : boolean,  
     roomName : string,  
     timer : any,
-    callback : (roomName : string) => void
+    callback : (roomName : string) => void,
+    socketid0 : string,
+    socketid1 : string
 }
 
 export type GameDataMap = {
@@ -27,4 +30,10 @@ export type gameActionParamType = {
     roomName : string,
     playerNo : string,
     action : string
+}
+
+export type ChatParaType = {
+    rommName : string,
+    playerNo : string,
+    message : string
 }
