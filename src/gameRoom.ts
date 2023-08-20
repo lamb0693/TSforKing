@@ -185,6 +185,11 @@ socket.on('gameData', function(msg : gameDataType) {
 });
 
 socket.on('winner', function(winner : string) {
-    if(playerNo === winner) alert(" 승 리 ")
-    else alert(" 패 배 ")
+    if(playerNo === winner){
+        confirm(" 승 리 ")
+    } 
+    else{
+        confirm(" 패 배 ")
+    } 
+    window.location.href="/ping/waitingroom"
 })

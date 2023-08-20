@@ -1,4 +1,4 @@
-const { io } = require("socket.io");
+//const { io } = require("socket.io");
 let playerNo;
 const strRoomName = document.getElementById("divRoomName").textContent;
 if (document.getElementById("divPlayerNo0") != null) {
@@ -157,9 +157,12 @@ socket.on('gameData', function (msg) {
     updateGameBoard();
 });
 socket.on('winner', function (winner) {
-    if (playerNo === winner)
-        alert(" 승 리 ");
-    else
-        alert(" 패 배 ");
+    if (playerNo === winner) {
+        confirm(" 승 리 ");
+    }
+    else {
+        confirm(" 패 배 ");
+    }
+    window.location.href = "/ping/waitingroom";
 });
-export {};
+//export {};
