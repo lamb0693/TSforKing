@@ -1,4 +1,4 @@
-//const { io } = require("socket.io");
+const { io } = require("socket.io");
 let playerNo;
 const strRoomName = document.getElementById("divRoomName").textContent;
 if (document.getElementById("divPlayerNo0") != null) {
@@ -165,4 +165,4 @@ socket.on('winner', function (winner) {
     }
     window.location.href = "/ping/waitingroom";
 });
-//export {};
+export {};
