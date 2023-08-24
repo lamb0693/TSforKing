@@ -138,15 +138,28 @@ ping.on('connection', (socket) => {
     const endGame = (winner, roonName) => {
         let data = mapGameData[roonName];
         clearInterval(data.timer);
+        const gameResult = {
+            winner: winner,
+            winnerId: null,
+            loserId: null,
+        };
+        if (gameResult.winner === "player0") {
+            gameResult.winnerId = data.player0_id;
+            gameResult.loserId = data.player1_id;
+        }
+        else {
+            gameResult.winnerId = data.player1_id;
+            gameResult.loserId = data.player0_id;
+        }
         delete mapGameData[roonName];
         // ** *******************/
         //** 승패 결과 Ajax로 up */
         // ******************* */
         console.log(winner + " Win");
-        ping.to(roonName).emit('winner', winner);
+        ping.to(roonName).emit('winner', gameResult);
     };
-    const prepareGame = (roomName, socketId, playerNo) => {
-        //gameData가 있는지 확인후 없으면 만듬 있으면 socket만 수정
+    const prepareGame = (roomName, txtUserId, txtUserNick, socketId, playerNo) => {
+        //gameData가 있는지 확인후 없으면 만듬 있으면 socket과 userId passwd 수정
         if (mapGameData[roomName] == null) {
             let gameData = {
                 gameId: 'ping' + Date.now(),
@@ -193,19 +206,29 @@ ping.on('connection', (socket) => {
                 },
                 timer: null,
                 socketid0: null,
-                socketid1: null
+                socketid1: null,
+                player0_id: null,
+                player1_id: null,
+                player0_nickname: null,
+                player1_nickname: null
             };
             mapGameData[roomName] = gameData;
         }
-        if (playerNo == 0)
+        if (playerNo == 0) {
             mapGameData[roomName].socketid0 = socket.id;
-        if (playerNo == 1)
+            mapGameData[roomName].player0_id = txtUserId;
+            mapGameData[roomName].player0_nickname = txtUserNick;
+        }
+        if (playerNo == 1) {
             mapGameData[roomName].socketid1 = socket.id;
+            mapGameData[roomName].player1_id = txtUserId;
+            mapGameData[roomName].player1_nickname = txtUserNick;
+        }
         ping.to(roomName).emit('prepareForStart', mapGameData[roomName]);
         //console.log("emitting prepareForStart", mapGameData[roomName])
     };
     // *********** CREATE ROOM FROM GameRoom ******************//
-    socket.on('ping_create_room_from_gameroom', (roomName, clientCallback) => {
+    socket.on('ping_create_room_from_gameroom', (roomName, txtUserId, txtUserNick, clientCallback) => {
         console.log('requested room name : ' + roomName);
         // 있으면 clientCallback('fail') 
         // 없으면 join(방 만들기) clientCallback('success') 실행 
@@ -218,13 +241,13 @@ ping.on('connection', (socket) => {
             socket.join(roomName);
             clientCallback('success');
             // gameData 준비
-            prepareGame(roomName, socket.id, 0);
+            prepareGame(roomName, txtUserId, txtUserNick, socket.id, 0);
             updateRoomAndSendRoomListtoAllClient(); // join하면 room 현황 broadcasiting
         }
     });
     // ********** playerNo가 1이 아니라 0에서올수 있을지 확인해 보자 *********/
     // *********** JOIN ROOM FROM GameRoom******************//
-    socket.on('ping_join_room_from_gameroom', (roomName, clientCallback) => {
+    socket.on('ping_join_room_from_gameroom', (roomName, txtUserId, txtUserNick, clientCallback) => {
         //console.log('requested room name : '  + roomName)
         // 있으면 join(방 조인) clientCallback('success') 실행 
         // 없으면 clientCallback('fail') 
@@ -238,7 +261,7 @@ ping.on('connection', (socket) => {
                 clientCallback('success');
                 updateRoomAndSendRoomListtoAllClient();
                 // 2명 조인이니 prepare
-                prepareGame(roomName, socket.id, 1);
+                prepareGame(roomName, txtUserId, txtUserNick, socket.id, 1);
             }
         }
         else {
@@ -315,10 +338,10 @@ ping.on('connection', (socket) => {
     });
     // ********* CHAT MESSAGE EVENT ******************//
     socket.on('chatData', (param) => {
-        ping.to(param.rommName).emit('chat message', param.playerNo + ':' + param.message);
+        ping.to(param.rommName).emit('chat message', param.nickname + ':' + param.message);
     });
 });
 server.listen(3000, () => {
     console.log('listening on *:3000');
 });
-export {};
+//export {};

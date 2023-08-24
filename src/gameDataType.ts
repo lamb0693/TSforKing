@@ -14,7 +14,11 @@ export type gameDataType = {
     timer : any,
     callback : (roomName : string) => void,
     socketid0 : string,
-    socketid1 : string
+    socketid1 : string,
+    player0_id : string,
+    player1_id : string,
+    player0_nickname : string,
+    player1_nickname : string
 }
 
 export type GameDataMap = {
@@ -34,6 +38,12 @@ export type gameActionParamType = {
 
 export type ChatParaType = {
     rommName : string,
-    playerNo : string,
+    nickname : string,
     message : string
+}
+
+export type GameResultParaType = {
+    winner : string,
+    winnerId : string,
+    loserId : string
 }

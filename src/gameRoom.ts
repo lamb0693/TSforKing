@@ -1,13 +1,30 @@
 const { io } = require("socket.io");
-import { gameDataType, StartGameParamType, gameActionParamType, ChatParaType } from "./gameDataType";
+import { gameDataType, StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType } from "./gameDataType";
 
 let playerNo :string
+
+//추가
+const userId : HTMLDivElement = document.getElementById("userId") as HTMLDivElement | null
+if(userId == null) alert("userID null")
+const txtUserId : string = userId.textContent
+const userNickname : HTMLDivElement = document.getElementById("userNickname") as HTMLDivElement | null
+if(userNickname == null) alert("userNickname null") 
+const txtUserNick : string = userNickname.textContent
+//const strRoomName : string = userNickname.textContent  // 사용자가 두명이니 방이름은 이렇게 하면 안됨
+// 추가 끝
+
+// 방이름 정하기 -- html th:text 에서 들어옴
 const strRoomName = document.getElementById("divRoomName").textContent
+
+
+
 if( document.getElementById("divPlayerNo0") != null ){
     playerNo = document.getElementById("divPlayerNo0").textContent
 } else {
     playerNo = document.getElementById("divPlayerNo1").textContent
 }
+
+
 
 const p0_game_paddle = document.getElementById("p0_game_paddle")
 const p1_game_paddle = document.getElementById("p1_game_paddle")
@@ -45,7 +62,7 @@ const sendChatMessage = (event) => {
     event.preventDefault();
     const param : ChatParaType = {
         rommName : strRoomName,
-        playerNo : playerNo,
+        nickname : txtUserNick,
         message : txtChatMsg.value
     }
     txtChatMsg.value = ""
@@ -140,14 +157,14 @@ const joinRoomCallBack = (result : string, strRoomName : string) : void => {
 // make room에서 왔으면
 if(playerNo === 'player0'){
     // 이름의 방을 만든다
-    socket.emit('ping_create_room_from_gameroom', strRoomName, (result : string) => {
+    socket.emit('ping_create_room_from_gameroom', strRoomName, txtUserId, txtUserNick, (result : string) => {
         makeRoomCallBack(result, strRoomName )
     })
 }
 
 //join에서 왔으면 이름의 방에 join하고 server에서 prepareGame()
 if(playerNo === 'player1'){
-    socket.emit('ping_join_room_from_gameroom', strRoomName, (result : string) => {
+    socket.emit('ping_join_room_from_gameroom', strRoomName, txtUserId, txtUserNick, (result : string) => {
         joinRoomCallBack(result, strRoomName)
     })
 }
@@ -184,9 +201,9 @@ socket.on('gameData', function(msg : gameDataType) {
     updateGameBoard()
 });
 
-socket.on('winner', function(winner : string) {
-    if(playerNo === winner){
-        confirm(" 승 리 ")
+socket.on('winner', function(result : GameResultParaType) {
+    if(playerNo === result.winner){
+        confirm(" 승 리 " + "winner :" + result.winnerId + " loser :" + result.loserId)
     } 
     else{
         confirm(" 패 배 ")

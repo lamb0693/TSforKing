@@ -1,5 +1,17 @@
 const { io } = require("socket.io");
 let playerNo;
+//추가
+const userId = document.getElementById("userId");
+if (userId == null)
+    alert("userID null");
+const txtUserId = userId.textContent;
+const userNickname = document.getElementById("userNickname");
+if (userNickname == null)
+    alert("userNickname null");
+const txtUserNick = userNickname.textContent;
+//const strRoomName : string = userNickname.textContent  // 사용자가 두명이니 방이름은 이렇게 하면 안됨
+// 추가 끝
+// 방이름 정하기 -- html th:text 에서 들어옴
 const strRoomName = document.getElementById("divRoomName").textContent;
 if (document.getElementById("divPlayerNo0") != null) {
     playerNo = document.getElementById("divPlayerNo0").textContent;
@@ -39,7 +51,7 @@ const sendChatMessage = (event) => {
     event.preventDefault();
     const param = {
         rommName: strRoomName,
-        playerNo: playerNo,
+        nickname: txtUserNick,
         message: txtChatMsg.value
     };
     txtChatMsg.value = "";
@@ -119,13 +131,13 @@ const joinRoomCallBack = (result, strRoomName) => {
 // make room에서 왔으면
 if (playerNo === 'player0') {
     // 이름의 방을 만든다
-    socket.emit('ping_create_room_from_gameroom', strRoomName, (result) => {
+    socket.emit('ping_create_room_from_gameroom', strRoomName, txtUserId, txtUserNick, (result) => {
         makeRoomCallBack(result, strRoomName);
     });
 }
 //join에서 왔으면 이름의 방에 join하고 server에서 prepareGame()
 if (playerNo === 'player1') {
-    socket.emit('ping_join_room_from_gameroom', strRoomName, (result) => {
+    socket.emit('ping_join_room_from_gameroom', strRoomName, txtUserId, txtUserNick, (result) => {
         joinRoomCallBack(result, strRoomName);
     });
 }
@@ -156,9 +168,9 @@ socket.on('gameData', function (msg) {
     gameData = msg;
     updateGameBoard();
 });
-socket.on('winner', function (winner) {
-    if (playerNo === winner) {
-        confirm(" 승 리 ");
+socket.on('winner', function (result) {
+    if (playerNo === result.winner) {
+        confirm(" 승 리 " + "winner :" + result.winnerId + " loser :" + result.loserId);
     }
     else {
         confirm(" 패 배 ");
