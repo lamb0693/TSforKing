@@ -16,22 +16,41 @@ if (divExistNickname == null)
 
 const checkExistId = (event : InputEvent) => {
     event.preventDefault();
-    fetch("http://localhost:8080/member/exist/id/" + txtId.value)
-        .then((response) => {
-            return response.text()
-        })
-        .then( (data) => {
-            console.log(data);
-            if(data==='true'){
-                divExistID.innerHTML = "다른 사용자가 사용중인 id 입니다"
-            } else{
-                divExistID.innerHTML = "사용할 수 있는 id 입니다"
-            }
-        })
-        .catch((error) => {
-            console.log(error);
-        });
-    };
+
+    const fetchResult = fetch("http://localhost:8080/member/exist/id/" + txtId.value) 
+
+    const dataResult  = fetchResult.then( (res) => {
+        //throw new Error("My Error")
+        return res.text();
+    })
+
+    const error = dataResult.then((result) =>{
+        console.log(result);
+        if(result==='true') divExistID.innerHTML = "다른 사용자가 사용중인 id 입니다"
+        else divExistID.innerHTML = "사용할 수 있는 id 입니다"  
+    })
+      
+    error.catch( (err) => {
+        console.log(err);
+    })
+}   
+    
+    // fetch("http://localhost:8080/member/exist/id/" + txtId.value)
+    //     .then((response) => {
+    //         return response.text()
+    //     })
+    //     .then( (data) => {
+    //         console.log(data);
+    //         if(data==='true'){
+    //             divExistID.innerHTML = "다른 사용자가 사용중인 id 입니다"
+    //         } else{
+    //             divExistID.innerHTML = "사용할 수 있는 id 입니다"
+    //         }
+    //     })
+    //     .catch((error) => {
+    //         console.log(error);
+    //     });
+    // };
 
 txtId.addEventListener('input', checkExistId);
 
