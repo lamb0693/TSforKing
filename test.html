@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원정보폼</title>
+    <style>
+        @charset "utf-8";
+        @font-face {
+          font-family: 'NanumSquareRound';
+          src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumSquareRound.woff') format('woff');
+          font-weight: normal;
+          font-style: normal;
+        }
+        
+        * { margin:0; padding:0; box-sizing: border-box; }
+        html { scroll-behavior:smooth; }
+        body { font-family:'NanumSquareRound','맑은 고딕', sans-serif; font-size:14px; font-weight: 400; color:#333; }
+        li { list-style: none;}
+        img,video { vertical-align:middle; }
+        a { text-decoration:none; }
+        .clearfix:after { content:""; display:block; clear:both; }
+        
+        
+        .s_membership {height: 100vh; padding-top: 10%; background:linear-gradient(0deg,rgba(249,213,213,1), rgba(209,247,241,1))}
+        /*height:(높이값 안주면 내용만큼만 나온다).padding-top: 10%는 자기 상위요소의 10%임, 지그은 높이가 100vh니까 화면 전체값의 10%*/
+        .membership_1 { width: 340px; padding: 20px; border: 1px solid #333;}
+        h1 {text-align: center; height: 100px; font-size: 40px;}
+        .login_form { width: 380px; margin: 0 auto; border: 1px solid #333; padding: 20px;}
+        .login_form>form>div { margin: 10px 0;}
+        fieldset {border: none; }
+        label {width: 80px; display: inline-block;}
+        
+        input[type="button"] { display: inline-block; padding: 6px 36px; font-size:16px; border-radius:28px;  border:1px solid #999 ;}
+        input:not([type="button"]){ outline: none;}
+        input[type="text"] { width: 200px; height: 40px;}
+        input[type="password"] { width: 200px; height: 40px; }
+        .login_btn {text-align: center;}
+        /*.login_btn {display: flex; justify-content: space-between;}도 가능하다. 왜냐면 input[type="button"]을{ display: inline-block;처리를 해놔서*/
+        input:checked { accent-color: #fcc;} /*체크하는곳- 기존 파랑색에서 원하는 색상으로 바꿈*/ 
+        input[value="로그인"] { background-color: #fcc;}
+        .login_btn>input:hover {cursor: pointer; color: darksalmon;}
+        /*호버시 커서모양생기고 글색 바뀜*/
+    </style>
+</head>
+<body>
+    <main>
+      <section class="s_membership">
+        <h1>로그인</h1>
+        <div class="login_form">
+          <form action="" method="">        
+           <div><label for="">아이디</label><input type="text"></div>
+           <div><label for="">비밀번호</label><input type="password"></div>
+           <div class="login_btn">
+            <input type="button" value="로그인">
+           </div>
+         </form>
+        </div>
+      </section>
+    </main>
+</body>
+</html>

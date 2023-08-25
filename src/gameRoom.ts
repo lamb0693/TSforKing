@@ -213,19 +213,29 @@ socket.on('winner', function(result : GameResultParaType) {
             "loser_id" : result.loserId
         }
     
-        const param = 
-        {
-            headers: {
-                "Content-Type": "application/json; charset=utf-8",
-                "Accept" : "application/json",
-                "_csrf" : token,
-                "_csrf_header" : header
-            },
-            method: "POST",
-            body: JSON.stringify(sendData),
-        }
+        // const param = 
+        // {
+        //     headers: {
+        //         "Content-Type": "application/json; charset=utf-8",
+        //         "Accept" : "application/json",
+        //         "_csrf" : token,
+        //         "_csrf_header" : header
+        //     },
+        //     method: "POST",
+        //     body: JSON.stringify(sendData),
+        // }
+
+       
     
-        fetch("http://localhost:8080/result/create", param)
+        fetch("http://localhost:8080/result/create", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': token,
+              // Add any other headers you need
+            },
+            body: JSON.stringify(sendData),   
+        })
         .then((result) => {
             console.log(result)
             return result.text();
