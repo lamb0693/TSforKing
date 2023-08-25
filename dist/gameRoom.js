@@ -170,6 +170,44 @@ socket.on('gameData', function (msg) {
 });
 socket.on('winner', function (result) {
     if (playerNo === result.winner) {
+        const token = document.querySelector('meta[name="_csrf"]').getAttribute("content");
+        const header = document.querySelector('meta[name="_csrf_header"]').getAttribute("content");
+        // 성적 db에 올리기
+        const sendData = {
+            "game_kind": "PING",
+            "winner_id": result.winnerId,
+            "loser_id": result.loserId
+        };
+        const param = {
+            headers: {
+                "Content-Type": "application/json; charset=utf-8",
+                "Accept": "application/json",
+                "_csrf": token,
+                "_csrf_header": header
+            },
+            method: "POST",
+            body: JSON.stringify(sendData),
+        };
+        fetch("http://localhost:8080/result/create", param)
+            .then((result) => {
+            console.log(result);
+            return result.text();
+        })
+            .then((data) => {
+            console.log(data);
+        })
+            .catch((err) => {
+            console.log(err);
+        });
+        // //json value가 올 예정
+        // const dataResult fetchResult.then( 
+        // })
+        // const errorResult = dataResult.then( (data) => {
+        //     console.log(data);
+        // })
+        // errorResult.catch( (err) => {
+        //     console.log(err)
+        // })
         confirm(" 승 리 " + "winner :" + result.winnerId + " loser :" + result.loserId);
     }
     else {
