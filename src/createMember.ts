@@ -17,20 +17,20 @@ if (divExistNickname == null)
 const checkExistId = (event : InputEvent) => {
     event.preventDefault();
 
-    const fetchResult = fetch("http://localhost:8080/member/exist/id/" + txtId.value) 
+    const resultPromise = fetch("http://localhost:8080/member/exist/id/" + txtId.value) 
 
-    const dataResult  = fetchResult.then( (res) => {
+    const dataPromise  = resultPromise.then( (res) => {
         //throw new Error("My Error")
         return res.text();
     })
 
-    const error = dataResult.then((result) =>{
+    const errorPromise = dataPromise.then((result) =>{
         console.log(result);
         if(result==='true') divExistID.innerHTML = "다른 사용자가 사용중인 id 입니다"
         else divExistID.innerHTML = "사용할 수 있는 id 입니다"  
     })
       
-    error.catch( (err) => {
+    errorPromise.catch( (err) => {
         console.log(err);
     })
 }   
@@ -56,23 +56,41 @@ txtId.addEventListener('input', checkExistId);
 
 const checkExistNickname = (event : InputEvent) => {
     event.preventDefault();
-    fetch("http://localhost:8080/member/exist/nickname/" + txtNickname.value)
-        .then((response) => {
-            return response.text()
-        })
-        .then( (data) => {
-            console.log(data);
-            if(data==='true'){
-                divExistNickname.innerHTML = "다른 사용자가 사용중인 nickname입니다"
-            } else{
-                divExistNickname.innerHTML = "사용할 수 있는 nickname 입니다"
 
-            }
-        })
-        .catch((error) => {
-            console.log(error);
-        });
-    };
+    const checkNick = async () => {
+        const fetchResult = await fetch("http://localhost:8080/member/exist/nickname/" + txtNickname.value)
+        console.log(fetchResult);
+
+        const dataResult = await fetchResult.text() // promise를 reutrn
+        console.log(dataResult)
+        if(dataResult==='true') divExistID.innerHTML = "다른 사용자가 사용중인 id 입니다"
+        else divExistID.innerHTML = "사용할 수 있는 id 입니다"
+
+        return dataResult // promise를 return
+    }
+
+    checkNick().catch( (error) => {
+        console.log(error)
+    })
+      
+}  
+    // fetch("http://localhost:8080/member/exist/nickname/" + txtNickname.value)
+    //     .then((response) => {
+    //         return response.text()
+    //     })
+    //     .then( (data) => {
+    //         console.log(data);
+    //         if(data==='true'){
+    //             divExistNickname.innerHTML = "다른 사용자가 사용중인 nickname입니다"
+    //         } else{
+    //             divExistNickname.innerHTML = "사용할 수 있는 nickname 입니다"
+
+    //         }
+    //     })
+    //     .catch((error) => {
+    //         console.log(error);
+    //     });
+    // };
 
 txtNickname.addEventListener('input', checkExistNickname);
 
