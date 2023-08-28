@@ -1,5 +1,6 @@
 const { io } = require("socket.io");
-import { gameDataType, StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType } from "./gameDataType";
+import { PingDataType } from "./pingDataType";
+import {StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType } from "./commonType";
 
 let playerNo :string
 
@@ -34,7 +35,7 @@ const btnStart = document.getElementById("start")
 const btnSendMessage = document.getElementById("btnSendMessage")
 const txtChatMsg:HTMLInputElement  = <HTMLInputElement>document.getElementById("txtChatMsg")
 const taChatMsg:HTMLTextAreaElement = <HTMLTextAreaElement>document.getElementById("taChatMsg")
-let gameData : gameDataType = null
+let gameData : PingDataType = null
 
 const Cons = {
     LEFT : 10,
@@ -177,7 +178,7 @@ socket.on('chat message', function(msg:string) {
 });
 
 
-socket.on('prepareForStart', function(msg : gameDataType) {
+socket.on('prepareForStart', function(msg : PingDataType) {
     console.log("game data in prepareForStart", msg)
     gameData = msg  
     updateGameBoard()
@@ -195,7 +196,7 @@ socket.on('stopped', (playerno:string) => {
 })
 
 // // ******* 받은 gameData 처리 => 화면 updata  ******
-socket.on('gameData', function(msg : gameDataType) {
+socket.on('gameData', function(msg : PingDataType) {
     console.log("game data", msg)
     gameData = msg
     updateGameBoard()
@@ -204,35 +205,20 @@ socket.on('gameData', function(msg : gameDataType) {
 socket.on('winner', function(result : GameResultParaType) {
 
     if(playerNo === result.winner){
-        const token = document.querySelector('meta[name="_csrf"]').getAttribute("content")
-        const header = document.querySelector('meta[name="_csrf_header"]').getAttribute("content")  
+        const token : string  = document.querySelector('meta[name="_csrf"]').getAttribute("content").toString()
+        const header : string = document.querySelector('meta[name="_csrf_header"]').getAttribute("content").toString()  
         // 성적 db에 올리기
         const sendData = {
             "game_kind" : "PING",
             "winner_id" : result.winnerId,
             "loser_id" : result.loserId
-        }
-    
-        // const param = 
-        // {
-        //     headers: {
-        //         "Content-Type": "application/json; charset=utf-8",
-        //         "Accept" : "application/json",
-        //         "_csrf" : token,
-        //         "_csrf_header" : header
-        //     },
-        //     method: "POST",
-        //     body: JSON.stringify(sendData),
-        // }
-
-       
+        }     
     
         fetch("http://localhost:8080/result/create", {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': token,
-              // Add any other headers you need
+              [header]: token,
             },
             body: JSON.stringify(sendData),   
         })
@@ -247,18 +233,6 @@ socket.on('winner', function(result : GameResultParaType) {
             console.log(err)
         })
     
-        // //json value가 올 예정
-        // const dataResult fetchResult.then( 
-        // })
-    
-        // const errorResult = dataResult.then( (data) => {
-        //     console.log(data);
-        // })
-    
-        // errorResult.catch( (err) => {
-        //     console.log(err)
-        // })
-
         confirm(" 승 리 " + "winner :" + result.winnerId + " loser :" + result.loserId)
     } 
     else{

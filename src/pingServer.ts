@@ -4,8 +4,8 @@ const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 
-import { gameDataType } from "./gameDataType";
-import { GameDataMap, StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType } from "./gameDataType";
+import { PingDataType,  GameDataMap } from "./pingDataType";
+import { StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType } from "./commonType";
 
 
 const Cons = {
@@ -154,7 +154,7 @@ ping.on('connection', (socket) => {
     })  
 
     const endGame = (winner : string, roonName : string) => {
-        let data : gameDataType = mapGameData[roonName]
+        let data : PingDataType = mapGameData[roonName]
         
         clearInterval(data.timer)
 
@@ -183,7 +183,7 @@ ping.on('connection', (socket) => {
     const prepareGame = (roomName : string, txtUserId : string, txtUserNick : string, socketId : string, playerNo : number) => {
         //gameData가 있는지 확인후 없으면 만듬 있으면 socket과 userId passwd 수정
         if( mapGameData[roomName] == null ) {
-            let gameData : gameDataType = {
+            let gameData : PingDataType = {
                 gameId : 'ping' + Date.now(),
                 p0_x: 200,
                 p0_y: Cons.P0_TOP,
@@ -197,7 +197,7 @@ ping.on('connection', (socket) => {
                 p1_prepared: false,
                 roomName : roomName,
                 callback: () => {
-                    let data : gameDataType = mapGameData[roomName]
+                    let data : PingDataType = mapGameData[roomName]
                     
                     // 그릴때 볼 패들-Height는 중심을 기준으로 그림, 패들-width는 현 pos에서 우측으로 그림  을 참고해서
                     // 수평 이동
@@ -299,7 +299,7 @@ ping.on('connection', (socket) => {
     
     socket.on('startGame', (param : StartGameParamType) => {
         // map에서 roomName을 찾음
-        const myGameData : gameDataType = mapGameData[param.roomName]
+        const myGameData : PingDataType = mapGameData[param.roomName]
         if(param.playerNo === 'player0') myGameData.p0_prepared = true
         if(param.playerNo === 'player1') myGameData.p1_prepared = true
         if(myGameData.p0_prepared==true && myGameData.p1_prepared == true){
@@ -315,7 +315,7 @@ ping.on('connection', (socket) => {
 
     socket.on('stopGame', ( playerno: string, roomName : string ) => {
         // map에서 roomName을 찾음
-        const myGameData : gameDataType = mapGameData[roomName]
+        const myGameData : PingDataType = mapGameData[roomName]
         // timer를 멈추고
         if(myGameData.timer != null) {
             clearInterval(myGameData.timer)
@@ -327,7 +327,7 @@ ping.on('connection', (socket) => {
 
 
     socket.on('gameData', (param : gameActionParamType ) => {
-        const data : gameDataType = mapGameData[param.roomName]
+        const data : PingDataType = mapGameData[param.roomName]
         console.log(param)
 
         switch(param.action){
