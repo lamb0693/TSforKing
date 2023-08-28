@@ -4,7 +4,7 @@ const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 
-import { PingDataType,  GameDataMap } from "./pingDataType";
+import { QuizDataType, GameDataMap } from "./quizDataType";
 import { StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType } from "./commonType";
 
 
@@ -29,35 +29,35 @@ const ioServer = new Server(server, {
   }
 });
 
-const ping = ioServer.of('/ping')
+const quiz = ioServer.of('/quiz')
 
 
 // 아래 두개의 구조는 항상 일치시키자 . 변화 시킬때 마다 update 부르고
-let pingRooms = null  // adapter로 구할 방
-let pingRoomsTransfer = [] // transfer 용 array를 만듬
+let quizRooms = null  // adapter로 구할 방
+let quizRoomsTransfer = [] // transfer 용 array를 만듬
 
-// server의 pingRooms, pingRoomsTransfer 를 update //
-const updateRoom = (ping) => {
-    pingRooms = ping.adapter.rooms;
-    pingRoomsTransfer = []
-    pingRooms.forEach( (room, roomName) => {
+// server의 quizRooms, quizRoomsTransfer 를 update //
+const updateRoom = (quiz) => {
+    quizRooms = quiz.adapter.rooms;
+    quizRoomsTransfer = []
+    quizRooms.forEach( (room, roomName) => {
         //console.log(roomName.length)
         //** id를 15자 이하로 꼭 하자 */
         if(roomName.length <= 15){
-            pingRoomsTransfer.push( {
+            quizRoomsTransfer.push( {
                 'roomName' : roomName,
                 'roomSize' : room.size
             } )
         }
     })
-    //console.log('roomList : ', pingRoomsTransfer)
+    //console.log('roomList : ', quizRoomsTransfer)
 }
 
 const checkExistRoomByName = (roomName) => {
     let bExist : boolean
     bExist = false
-    for(let i:number =0; i<pingRoomsTransfer.length; i++){
-        if(pingRoomsTransfer[i].roomName == roomName){
+    for(let i:number =0; i<quizRoomsTransfer.length; i++){
+        if(quizRoomsTransfer[i].roomName == roomName){
             bExist = true
             break
         } 
@@ -67,18 +67,18 @@ const checkExistRoomByName = (roomName) => {
 }
 
 const getRoomSize = (roomName) => {
-    for(let i:number =0; i<pingRoomsTransfer.length; i++){
-        if( pingRoomsTransfer[i].roomName === roomName) return pingRoomsTransfer[i].roomSize
+    for(let i:number =0; i<quizRoomsTransfer.length; i++){
+        if( quizRoomsTransfer[i].roomName === roomName) return quizRoomsTransfer[i].roomSize
     }
     return -1
 }
 
 const updateRoomAndSendRoomListtoAllClient = () => {
-    updateRoom(ping) 
-    ping.emit('ping_rooms_info', pingRoomsTransfer )  // 방 list를 보낸다 get_room_list callback으로 대체
+    updateRoom(quiz) 
+    quiz.emit('quiz_rooms_info', quizRoomsTransfer )  // 방 list를 보낸다 get_room_list callback으로 대체
 }
 
-ping.on('connection', (socket) => {
+quiz.on('connection', (socket) => {
     console.log('a user connected')
     updateRoomAndSendRoomListtoAllClient()
 
@@ -93,11 +93,11 @@ ping.on('connection', (socket) => {
         for(const [key, value] of Object.entries(mapGameData)){
             if(value.socketid0 === socket.id){
                 console.log("player0 나감 종료 처리 필요함")
-                ping.to(value.roomName).emit('chat message', "상대방이 나갔습니다")
+                quiz.to(value.roomName).emit('chat message', "상대방이 나갔습니다")
                 endGame('player1', value.roomName)
             } else if(value.socketid1 === socket.id){
                 console.log("player1 나감 종료 처리 필요함") 
-                ping.to(value.roomName).emit('chat message', "상대방이 나갔습니다")
+                quiz.to(value.roomName).emit('chat message', "상대방이 나갔습니다")
                 endGame('player0', value.roomName)  
             }
         }
@@ -108,21 +108,21 @@ ping.on('connection', (socket) => {
     /*********get_room_list 에 대한 처리 ***** 없어도 되는지 체크 요망*********/
     /*********room을 updaet후 clientCallback 에 roomList 넣어 실행 **************/
     socket.on('get_room_list', (msg : string, clientCallback) => {
-        updateRoom(ping)
+        updateRoom(quiz)
         //console.log(msg)
         //console.log('updateRoom with client callback ')
-        // console.log('callback : ', pingRoomsTransfer)
-        clientCallback(pingRoomsTransfer)
+        // console.log('callback : ', quizRoomsTransfer)
+        clientCallback(quizRoomsTransfer)
     })  
       
     // *********** CREATE ROOM ******************//
-    socket.on('ping_create_room', (roomName : string, clientCallback : (msg:string)=>void ) => {
+    socket.on('quiz_create_room', (roomName : string, clientCallback : (msg:string)=>void ) => {
         console.log('requested room name : '  + roomName)
 
         // 있으면 clientCallback('fail') 
         // 없으면 join(방 만들기) clientCallback('success') 실행 
         if( checkExistRoomByName(roomName) ) {
-            //console.log("on ping_create_room : room exist")
+            //console.log("on quiz_create_room : room exist")
             clientCallback('fail')
         } else {
             //console.log("make new room " + roomName)
@@ -133,7 +133,7 @@ ping.on('connection', (socket) => {
     })    
 
     // *********** JOIN ROOM ******************//
-    socket.on('ping_join_room', (roomName, clientCallback : (msg:string)=>void ) => {
+    socket.on('quiz_join_room', (roomName, clientCallback : (msg:string)=>void ) => {
         //console.log('requested room name : '  + roomName)
         // 있으면 join(방 조인) clientCallback('success') 실행 
         // 없으면 clientCallback('fail') 
@@ -150,11 +150,11 @@ ping.on('connection', (socket) => {
             //console.log("join room not exist " + roomName)
             clientCallback('fail')
         }
-        //socket.emit('ping_rooms_info', pingRoomsTransfer) // callbakc으로 대치
+        //socket.emit('quiz_rooms_info', quizRoomsTransfer) // callbakc으로 대치
     })  
 
     const endGame = (winner : string, roonName : string) => {
-        let data : PingDataType = mapGameData[roonName]
+        let data : QuizDataType = mapGameData[roonName]
         
         clearInterval(data.timer)
 
@@ -177,54 +177,23 @@ ping.on('connection', (socket) => {
         // ******************* */
         console.log(winner + " Win")
 
-        ping.to(roonName).emit('winner', gameResult)
+        quiz.to(roonName).emit('winner', gameResult)
     }
 
     const prepareGame = (roomName : string, txtUserId : string, txtUserNick : string, socketId : string, playerNo : number) => {
         //gameData가 있는지 확인후 없으면 만듬 있으면 socket과 userId passwd 수정
         if( mapGameData[roomName] == null ) {
-            let gameData : PingDataType = {
-                gameId : 'ping' + Date.now(),
-                p0_x: 200,
-                p0_y: Cons.P0_TOP,
-                p1_x: 200,
-                p1_y: Cons.P1_TOP,
-                ballX: 200,
-                ballY: 200,
-                ballMoveX : 5,
-                ballMoveY : 5,
+            let gameData : QuizDataType = {
                 p0_prepared: false,
                 p1_prepared: false,
                 roomName : roomName,
                 callback: () => {
-                    let data : PingDataType = mapGameData[roomName]
+                    let data : QuizDataType = mapGameData[roomName]
                     
-                    // 그릴때 볼 패들-Height는 중심을 기준으로 그림, 패들-width는 현 pos에서 우측으로 그림  을 참고해서
-                    // 수평 이동
-                    data.ballX += data.ballMoveX
-                    if( (data.ballX + Cons.BALL_RADIUS) > Cons.RIGHT || (data.ballX-Cons.BALL_RADIUS) < Cons.LEFT) data.ballMoveX *= (-1)
-
-                    // 수직이동 아래 벽 체크 - 끝이니
-                    data.ballY += data.ballMoveY
-                    if( (data.ballY+Cons.BALL_RADIUS)> Cons.BOTTOM || (data.ballY-Cons.BALL_RADIUS) < Cons.TOP) data.ballMoveY *= (-1)
-
-                    // player1 패들 체크  하부 패들
-                    if( data.ballMoveY > 0 && (data.ballY+Cons.BALL_RADIUS) > (Cons.P1_TOP-Cons.PAD_HALF_THICK) ) {  //볼 하부 > 패들 상부  통과후는 게임 종료 됨
-                      if( data.ballX > gameData.p1_x && ( data.ballX < data.p1_x+Cons.PADDLE_SIZE) ) data.ballMoveY *= (-1)
-                    }
-
-                    // player0 패들 체크 상부 패들  올라가는 경우에만
-                    if(  data.ballMoveY < 0 && (data.ballY-Cons.BALL_RADIUS) < (Cons.P0_TOP+Cons.PAD_HALF_THICK) ){ //볼 상부 < 패들 하부  통과후는 게임 종료 됨
-                      if( data.ballX > gameData.p0_x && ( data.ballX < data.p0_x+Cons.PADDLE_SIZE) ) data.ballMoveY *= (-1)
-                    }
-
-                    // 놓치면 게임 종료
-                    if( (data.ballY) < (Cons.P0_TOP - Cons.PAD_HALF_THICK) ) endGame('player1', data.roomName)
-                    if( (data.ballY) > (Cons.P1_TOP + Cons.PAD_HALF_THICK) ) endGame('player0', data.roomName)
-                    console.log(data.ballY+Cons.BALL_RADIUS, Cons.P0_TOP - Cons.PAD_HALF_THICK, Cons.P1_TOP + Cons.PAD_HALF_THICK)
+                    // game 진행
 
                     //console.log("callback : " + roomName)
-                    ping.to(roomName).emit('gameData', data)
+                    quiz.to(roomName).emit('gameData', data)
                 },
                 timer : null,
                 socketid0 : null,
@@ -248,19 +217,19 @@ ping.on('connection', (socket) => {
             mapGameData[roomName].player1_nickname = txtUserNick
         } 
     
-        ping.to(roomName).emit('prepareForStart', mapGameData[roomName])
+        quiz.to(roomName).emit('prepareForStart', mapGameData[roomName])
         //console.log("emitting prepareForStart", mapGameData[roomName])
     }
     
     // *********** CREATE ROOM FROM GameRoom ******************//
-    socket.on('ping_create_room_from_gameroom', (roomName : string, txtUserId : string, txtUserNick : string,
+    socket.on('quiz_create_room_from_gameroom', (roomName : string, txtUserId : string, txtUserNick : string,
             clientCallback : (result :string)=>void ) => {
         console.log('requested room name : '  + roomName)
 
         // 있으면 clientCallback('fail') 
         // 없으면 join(방 만들기) clientCallback('success') 실행 
         if( checkExistRoomByName(roomName) ) {
-            //console.log("on ping_create_room : room exist")
+            //console.log("on quiz_create_room : room exist")
             clientCallback('fail')
         } else {
             //console.log("make new room " + roomName)
@@ -274,7 +243,7 @@ ping.on('connection', (socket) => {
     
     // ********** playerNo가 1이 아니라 0에서올수 있을지 확인해 보자 *********/
     // *********** JOIN ROOM FROM GameRoom******************//
-    socket.on('ping_join_room_from_gameroom', (roomName : string, txtUserId : string, txtUserNick : string,
+    socket.on('quiz_join_room_from_gameroom', (roomName : string, txtUserId : string, txtUserNick : string,
             clientCallback : (result :string)=>void) => {
         //console.log('requested room name : '  + roomName)
         // 있으면 join(방 조인) clientCallback('success') 실행 
@@ -294,12 +263,12 @@ ping.on('connection', (socket) => {
             //console.log("join room not exist " + roomName)
             clientCallback('fail')
         }
-        //socket.emit('ping_rooms_info', pingRoomsTransfer) // callbakc으로 대치 하였음
+        //socket.emit('quiz_rooms_info', quizRoomsTransfer) // callbakc으로 대치 하였음
     }) 
     
     socket.on('startGame', (param : StartGameParamType) => {
         // map에서 roomName을 찾음
-        const myGameData : PingDataType = mapGameData[param.roomName]
+        const myGameData : QuizDataType = mapGameData[param.roomName]
         if(param.playerNo === 'player0') myGameData.p0_prepared = true
         if(param.playerNo === 'player1') myGameData.p1_prepared = true
         if(myGameData.p0_prepared==true && myGameData.p1_prepared == true){
@@ -307,7 +276,7 @@ ping.on('connection', (socket) => {
             myGameData.timer = setInterval(myGameData.callback, 100)
             // Start를 시키면 stop버튼을 활성화 시키기 위해 started msg를 보내고 
             // 재시작 위해 prepared를 false로 바꿈
-            ping.to(myGameData.roomName).emit('started')
+            quiz.to(myGameData.roomName).emit('started')
             myGameData.p0_prepared = false
             myGameData.p1_prepared = false
         }
@@ -315,41 +284,37 @@ ping.on('connection', (socket) => {
 
     socket.on('stopGame', ( playerno: string, roomName : string ) => {
         // map에서 roomName을 찾음
-        const myGameData : PingDataType = mapGameData[roomName]
+        const myGameData : QuizDataType = mapGameData[roomName]
         // timer를 멈추고
         if(myGameData.timer != null) {
             clearInterval(myGameData.timer)
             myGameData.timer = null
         }
         // 멈추었다는 message와 멈춘 사람을 보냄
-        ping.to(roomName).emit('stopped', playerno)
+        quiz.to(roomName).emit('stopped', playerno)
     })
 
 
     socket.on('gameData', (param : gameActionParamType ) => {
-        const data : PingDataType = mapGameData[param.roomName]
+        const data : QuizDataType = mapGameData[param.roomName]
         console.log(param)
 
         switch(param.action){
             case 'btnLeftClicked' :
                 if(param.playerNo==='player0'){
                     //console.log("0 l")
-                    data.p0_x -= 10
-                    if(data.p0_x < Cons.LEFT) data.p0_x = Cons.LEFT
+
                 } else if(param.playerNo==='player1') {
-                    data.p1_x -=10
-                    if(data.p1_x < Cons.LEFT) data.p1_x= Cons.LEFT
+
                     //console.log("1 l")
                 }  
                 break;
             case 'btnRightClicked' :
                 if(param.playerNo==='player0'){
                     //console.log("0 r")
-                    data.p0_x += 10
-                    if(data.p0_x + Cons.PADDLE_SIZE > Cons.RIGHT) data.p0_x = Cons.RIGHT-Cons.PADDLE_SIZE
+
                 } else if(param.playerNo==='player1') {
-                    data.p1_x += 10
-                    if(data.p1_x + Cons.PADDLE_SIZE > Cons.RIGHT) data.p1_x = Cons.RIGHT-Cons.PADDLE_SIZE
+
                     //console.log("1 r")
                 } 
                 break;
@@ -363,11 +328,11 @@ ping.on('connection', (socket) => {
 
     // ********* CHAT MESSAGE EVENT ******************//
     socket.on('chatData', (param : ChatParaType ) => {
-        ping.to(param.rommName).emit('chat message', param.nickname+':'+param.message);
+        quiz.to(param.rommName).emit('chat message', param.nickname+':'+param.message);
     });
 
 });
 
-server.listen(3000, () => {
-    console.log('listening on *:3000');
+server.listen(3002, () => {
+    console.log("Quiz Server listening...3002");
 });

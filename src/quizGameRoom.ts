@@ -1,5 +1,6 @@
 const { io } = require("socket.io");
-import { gameDataType, StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType } from "./gameDataType";
+import { QuizDataType,  } from "./quizDataType";
+import { StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType} from "./commonType"
 
 let playerNo :string
 
@@ -26,36 +27,19 @@ if( document.getElementById("divPlayerNo0") != null ){
 
 
 
-const p0_game_paddle = document.getElementById("p0_game_paddle")
-const p1_game_paddle = document.getElementById("p1_game_paddle")
-const game_ball = document.getElementById("game_ball")
 const btnStart = document.getElementById("start")
 
 const btnSendMessage = document.getElementById("btnSendMessage")
 const txtChatMsg:HTMLInputElement  = <HTMLInputElement>document.getElementById("txtChatMsg")
 const taChatMsg:HTMLTextAreaElement = <HTMLTextAreaElement>document.getElementById("taChatMsg")
-let gameData : gameDataType = null
+let gameData : QuizDataType = null
 
 const Cons = {
-    LEFT : 10,
-    RIGHT : 410,
-    TOP : 10,
-    BOTTOM : 510,
-    PADDLE_SIZE : 80,
-    P0_TOP : 40, // 30-50
-    P1_TOP : 480, // 470-490
-    PAD_HALF_THICK : 10, 
-    BALL_RADIUS : 10
 }
 
 // // *******화면을 현재 gameData로 update ******
 const updateGameBoard = () :void  => {
-    p0_game_paddle.style.left = gameData.p0_x + 'px'
-    p0_game_paddle.style.top = (gameData.p0_y - Cons.PAD_HALF_THICK) + 'px'
-    p1_game_paddle.style.left = gameData.p1_x + 'px'
-    p1_game_paddle.style.top = (gameData.p1_y - Cons.PAD_HALF_THICK) + 'px'
-    game_ball.style.left = (gameData.ballX - Cons.BALL_RADIUS) + 'px'
-    game_ball.style.top = (gameData.ballY - Cons.BALL_RADIUS) + 'px'
+
 }
 
 const sendChatMessage = (event) => {
@@ -126,7 +110,7 @@ btnStop.addEventListener('click', onStopButtonClikced)
 
 
 // ******* 게임 서버 접속  ******
-const socket = io("http://localhost:3000/ping", {path :"/socket.io"
+const socket = io("http://localhost:3002/quiz", {path :"/socket.io"
 });
 
 const makeRoomCallBack = (result :string, strRoomName : string) => {
@@ -157,14 +141,14 @@ const joinRoomCallBack = (result : string, strRoomName : string) : void => {
 // make room에서 왔으면
 if(playerNo === 'player0'){
     // 이름의 방을 만든다
-    socket.emit('ping_create_room_from_gameroom', strRoomName, txtUserId, txtUserNick, (result : string) => {
+    socket.emit('quiz_create_room_from_gameroom', strRoomName, txtUserId, txtUserNick, (result : string) => {
         makeRoomCallBack(result, strRoomName )
     })
 }
 
 //join에서 왔으면 이름의 방에 join하고 server에서 prepareGame()
 if(playerNo === 'player1'){
-    socket.emit('ping_join_room_from_gameroom', strRoomName, txtUserId, txtUserNick, (result : string) => {
+    socket.emit('quiz_join_room_from_gameroom', strRoomName, txtUserId, txtUserNick, (result : string) => {
         joinRoomCallBack(result, strRoomName)
     })
 }
@@ -177,7 +161,7 @@ socket.on('chat message', function(msg:string) {
 });
 
 
-socket.on('prepareForStart', function(msg : gameDataType) {
+socket.on('prepareForStart', function(msg : QuizDataType) {
     console.log("game data in prepareForStart", msg)
     gameData = msg  
     updateGameBoard()
@@ -195,7 +179,7 @@ socket.on('stopped', (playerno:string) => {
 })
 
 // // ******* 받은 gameData 처리 => 화면 updata  ******
-socket.on('gameData', function(msg : gameDataType) {
+socket.on('gameData', function(msg : QuizDataType) {
     console.log("game data", msg)
     gameData = msg
     updateGameBoard()
@@ -205,64 +189,44 @@ socket.on('winner', function(result : GameResultParaType) {
 
     if(playerNo === result.winner){
         const token = document.querySelector('meta[name="_csrf"]').getAttribute("content")
-        const header = document.querySelector('meta[name="_csrf_header"]').getAttribute("content")  
+        const header = document.querySelector('meta[name="_csrf_header"]').getAttribute("content")
+        const strHeader = header.toString() 
         // 성적 db에 올리기
         const sendData = {
-            "game_kind" : "PING",
+            "game_kind" : "QUIZ",
             "winner_id" : result.winnerId,
             "loser_id" : result.loserId
         }
     
-        // const param = 
-        // {
-        //     headers: {
-        //         "Content-Type": "application/json; charset=utf-8",
-        //         "Accept" : "application/json",
-        //         "_csrf" : token,
-        //         "_csrf_header" : header
-        //     },
-        //     method: "POST",
-        //     body: JSON.stringify(sendData),
-        // }
-
-       
-    
-        fetch("http://localhost:8080/result/create", {
-            method: 'POST',
+        const param = 
+        {
             headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': token,
-              // Add any other headers you need
+                "Content-Type": "application/json; charset=utf-8",
+                [strHeader] : token,
             },
-            body: JSON.stringify(sendData),   
-        })
-        .then((result) => {
+            method: "POST",
+            body: JSON.stringify(sendData),
+        }
+    
+        const fetchResult = fetch("http://localhost:8080/result/create", param)
+        
+        const dataResult = fetchResult.then((result) => {
             console.log(result)
             return result.text();
         })
-        .then( (data) => {
+
+        dataResult.then( (data) => {
             console.log(data)
         })
-        .catch( (err) => {
+
+        dataResult.catch( (err) => {
             console.log(err)
         })
     
-        // //json value가 올 예정
-        // const dataResult fetchResult.then( 
-        // })
-    
-        // const errorResult = dataResult.then( (data) => {
-        //     console.log(data);
-        // })
-    
-        // errorResult.catch( (err) => {
-        //     console.log(err)
-        // })
-
         confirm(" 승 리 " + "winner :" + result.winnerId + " loser :" + result.loserId)
     } 
     else{
         confirm(" 패 배 ")
     } 
-    window.location.href="/ping/waitingroom"
+    window.location.href="/quiz/waitingroom"
 })
