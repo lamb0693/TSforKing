@@ -24,10 +24,83 @@ const btnSendMessage = document.getElementById("btnSendMessage");
 const txtChatMsg = document.getElementById("txtChatMsg");
 const taChatMsg = document.getElementById("taChatMsg");
 let gameData = null;
+// timber 문제 및 답안 영역 설정
+const divTimer = document.getElementById("divTimer");
+const divProblem = document.getElementById("divProblem");
+const divAnswer1 = document.getElementById("divAnswer1");
+const divAnswer2 = document.getElementById("divAnswer2");
+const divAnswer3 = document.getElementById("divAnswer3");
+const divAnswer4 = document.getElementById("divAnswer4");
+const divAreas = document.querySelectorAll("#quizArea > div");
 const Cons = {};
+const updateDivArea = () => {
+    for (let i = 0; i < 4; i++)
+        divAreas[i + 2].style.backgroundColor = '#eeeeee';
+    switch (gameData.player0_selected) {
+        case 1:
+            divAnswer1.style.backgroundColor = '#FFA500';
+            break;
+        case 2:
+            divAnswer2.style.backgroundColor = '#FFA500';
+            break;
+        case 3:
+            divAnswer3.style.backgroundColor = '#FFA500';
+            break;
+        case 4:
+            divAnswer4.style.backgroundColor = '#FFA500';
+            break;
+    }
+    switch (gameData.player1_selected) {
+        case 1:
+            divAnswer1.style.backgroundColor = '#87CEEB';
+            break;
+        case 2:
+            divAnswer2.style.backgroundColor = '#87CEEB';
+            break;
+        case 3:
+            divAnswer3.style.backgroundColor = '#87CEEB';
+            break;
+        case 4:
+            divAnswer4.style.backgroundColor = '#87CEEB';
+            break;
+    }
+};
 // // *******화면을 현재 gameData로 update ******
 const updateGameBoard = () => {
+    updateDivArea();
+    divTimer.innerText = gameData.timeRemain.toString();
 };
+const onDivAnswerClickced = (event) => {
+    event.preventDefault();
+    if (gameData.timer == null)
+        return;
+    let selected = -1;
+    switch (event.target) {
+        case divAnswer1:
+            selected = 1;
+            break;
+        case divAnswer2:
+            selected = 2;
+            break;
+        case divAnswer3:
+            selected = 3;
+            break;
+        case divAnswer4:
+            selected = 4;
+            break;
+    }
+    console.log("selected : " + selected);
+    const param = {
+        roomName: strRoomName,
+        playerNo: playerNo,
+        clickedDivision: selected
+    };
+    socket.emit('answer_selected', param);
+};
+divAnswer1.addEventListener('click', onDivAnswerClickced);
+divAnswer2.addEventListener('click', onDivAnswerClickced);
+divAnswer3.addEventListener('click', onDivAnswerClickced);
+divAnswer4.addEventListener('click', onDivAnswerClickced);
 const sendChatMessage = (event) => {
     event.preventDefault();
     const param = {
@@ -50,37 +123,6 @@ const onStartButtonClicked = (event) => {
     socket.emit('startGame', param);
 };
 btnStart.addEventListener('click', onStartButtonClicked);
-const onBtnLeftClikced = (event) => {
-    event.preventDefault();
-    const data = {
-        roomName: strRoomName,
-        playerNo: playerNo,
-        action: 'btnLeftClicked'
-    };
-    socket.emit('gameData', data);
-};
-// ******* left button 관련 설정  ******
-const btnLeft = document.getElementById("toLeft");
-btnLeft.addEventListener('click', onBtnLeftClikced);
-const onBtnRightClikced = (event) => {
-    event.preventDefault();
-    const data = {
-        roomName: strRoomName,
-        playerNo: playerNo,
-        action: 'btnRightClicked'
-    };
-    socket.emit('gameData', data);
-};
-// ******* Right button 관련 설정  ******
-const btnRight = document.getElementById("toRight");
-btnRight.addEventListener('click', onBtnRightClikced);
-const onStopButtonClikced = (event) => {
-    event.preventDefault();
-    socket.emit('stopGame', playerNo, strRoomName);
-};
-// ******* Stop button 관련 설정  ******
-const btnStop = document.getElementById("stopGame");
-btnStop.addEventListener('click', onStopButtonClikced);
 // ******* 게임 서버 접속  ******
 const socket = io("http://localhost:3002/quiz", { path: "/socket.io"
 });
@@ -135,21 +177,29 @@ socket.on('prepareForStart', function (msg) {
     updateGameBoard();
     btnStart.removeAttribute('disabled');
 });
-socket.on('started', () => {
-    btnStop.removeAttribute('disabled');
-});
-socket.on('stopped', (playerno) => {
-    alert(playerno + " stooped Game 준비되면 Start Button을 누르세요");
-    btnStart.removeAttribute('disabled');
-    btnStop.setAttribute('disabled', 'true');
-});
 // // ******* 받은 gameData 처리 => 화면 updata  ******
 socket.on('gameData', function (msg) {
     console.log("game data", msg);
     gameData = msg;
-    updateGameBoard();
+    console.log(gameData.problem, console.log(divProblem));
+    if (gameData.problem != null && divProblem.innerText == "문제영역")
+        updateQuizArea();
+    updateGameBoard(); // timer만
+});
+const updateQuizArea = () => {
+    divProblem.innerText = gameData.problem;
+    divAnswer1.innerText = gameData.select1;
+    divAnswer2.innerText = gameData.select2;
+    divAnswer3.innerText = gameData.select3;
+    divAnswer4.innerText = gameData.select4;
+};
+socket.on('div_selected_data', function (msg) {
+    console.log("game data", msg);
+    gameData = msg; // 받은 gameData로 현재 gameData update후 새로 그려줌
+    updateDivArea();
 });
 socket.on('winner', function (result) {
+    gameData.timer = null;
     if (playerNo === result.winner) {
         const token = document.querySelector('meta[name="_csrf"]').getAttribute("content");
         const header = document.querySelector('meta[name="_csrf_header"]').getAttribute("content");
@@ -179,10 +229,10 @@ socket.on('winner', function (result) {
         dataResult.catch((err) => {
             console.log(err);
         });
-        confirm(" 승 리 " + "winner :" + result.winnerId + " loser :" + result.loserId);
+        confirm(" 정답입니다 승리기록을 올립니다 " + "winner :" + result.winnerId);
     }
     else {
-        confirm(" 패 배 ");
+        confirm(" 틀렸습니다 ");
     }
     window.location.href = "/quiz/waitingroom";
 });
