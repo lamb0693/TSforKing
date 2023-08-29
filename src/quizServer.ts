@@ -218,6 +218,7 @@ quiz.on('connection', (socket) => {
                     data.timeRemain --
                     if (data.timeRemain == 0){
                         clearInterval(data.timer);
+                        data.timer = null
                         if(data.player0_selected === data.answer) endGame('player0', data.roomName)
                         else if(data.player1_selected === data.answer) endGame('player1', data.roomName)
                         else endGame('nowinner', data.roomName)
@@ -226,7 +227,7 @@ quiz.on('connection', (socket) => {
                     //console.log("callback : " + roomName)
                     quiz.to(roomName).emit('gameData', data)
                 },
-                timeRemain : 60,
+                timeRemain : 100,
                 timer : null,
                 socketid0 : null,
                 socketid1 : null,
@@ -301,6 +302,7 @@ quiz.on('connection', (socket) => {
     }) 
     
     socket.on('startGame', (param : StartGameParamType) => {
+        console.log("startGame message has come" + param.playerNo)
         // map에서 roomName을 찾음
         const myGameData : QuizDataType = mapGameData[param.roomName]
         if(param.playerNo === 'player0') myGameData.p0_prepared = true
@@ -332,17 +334,17 @@ quiz.on('connection', (socket) => {
     // })
 
 
-    socket.on('gameData', (param : gameActionParamType ) => {
-        const data : QuizDataType = mapGameData[param.roomName]
-        console.log(param)
+    // socket.on('gameData', (param : gameActionParamType ) => {
+    //     const data : QuizDataType = mapGameData[param.roomName]
+    //     console.log(param)
 
-        switch(param.action){
-            case 'stop' :
-                clearInterval(data.timer)
-                break;
-        }
-        console.log(data)
-    })
+    //     switch(param.action){
+    //         case 'stop' :
+    //             clearInterval(data.timer)
+    //             break;
+    //     }
+    //     console.log(data)
+    // })
 
     socket.on('answer_selected', (param : SelAnswerParamType) => {
         console.log('answer_selected messsage has come')

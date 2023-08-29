@@ -69,6 +69,9 @@ const updateGameBoard = () :void  => {
 
 const onDivAnswerClickced  = (event : MouseEvent) : void => {
     event.preventDefault()
+
+    if(gameData.timer == null) return
+
     let selected : number = -1
     switch(event.target){
         case divAnswer1 : selected = 1; break;
@@ -201,6 +204,7 @@ socket.on('div_selected_data', function(msg : QuizDataType) {
 })
 
 socket.on('winner', function(result : GameResultParaType) {
+    gameData.timer = null
 
     if(playerNo === result.winner){
         const token = document.querySelector('meta[name="_csrf"]').getAttribute("content")
@@ -238,10 +242,10 @@ socket.on('winner', function(result : GameResultParaType) {
             console.log(err)
         })
     
-        confirm(" 승 리 " + "winner :" + result.winnerId + " loser :" + result.loserId)
+        confirm(" 정답입니다 승리기록을 올립니다 " + "winner :" + result.winnerId )
     } 
     else{
-        confirm(" 패 배 ")
+        confirm(" 틀렸습니다 ")
     } 
     window.location.href="/quiz/waitingroom"
 })

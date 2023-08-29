@@ -137,9 +137,13 @@ quiz.on('connection', (socket) => {
             gameResult.winnerId = data.player0_id;
             gameResult.loserId = data.player1_id;
         }
-        else {
+        else if (gameResult.winner === "player1") {
             gameResult.winnerId = data.player1_id;
             gameResult.loserId = data.player0_id;
+        }
+        else {
+            gameResult.winnerId = "NoWinner";
+            gameResult.loserId = "NoLoser";
         }
         delete mapGameData[roonName];
         console.log(winner + " Win");
@@ -182,17 +186,20 @@ quiz.on('connection', (socket) => {
                     let data = mapGameData[roomName];
                     // game 진행
                     data.timeRemain--;
-                    if (data.timeRemain == 0){
+                    if (data.timeRemain == 0) {
                         clearInterval(data.timer);
-                        if(data.player0_selected === data.answer) endGame('player0', data.rommName)
-                        else if(data.player1_selected === data.answer) endGame('player1', data.rommName)
-                        else endGame('nowinner', data.rommName)
+                        data.timer = null;
+                        if (data.player0_selected === data.answer)
+                            endGame('player0', data.roomName);
+                        else if (data.player1_selected === data.answer)
+                            endGame('player1', data.roomName);
+                        else
+                            endGame('nowinner', data.roomName);
                     }
-                    
                     //console.log("callback : " + roomName)
                     quiz.to(roomName).emit('gameData', data);
                 },
-                timeRemain: 60,
+                timeRemain: 100,
                 timer: null,
                 socketid0: null,
                 socketid1: null,
@@ -262,6 +269,7 @@ quiz.on('connection', (socket) => {
         //socket.emit('quiz_rooms_info', quizRoomsTransfer) // callbakc으로 대치 하였음
     });
     socket.on('startGame', (param) => {
+        console.log("startGame message has come" + param.playerNo);
         // map에서 roomName을 찾음
         const myGameData = mapGameData[param.roomName];
         if (param.playerNo === 'player0')
@@ -291,16 +299,16 @@ quiz.on('connection', (socket) => {
     //     // 멈추었다는 message와 멈춘 사람을 보냄
     //     quiz.to(roomName).emit('stopped', playerno)
     // })
-    socket.on('gameData', (param) => {
-        const data = mapGameData[param.roomName];
-        console.log(param);
-        switch (param.action) {
-            case 'stop':
-                clearInterval(data.timer);
-                break;
-        }
-        console.log(data);
-    });
+    // socket.on('gameData', (param : gameActionParamType ) => {
+    //     const data : QuizDataType = mapGameData[param.roomName]
+    //     console.log(param)
+    //     switch(param.action){
+    //         case 'stop' :
+    //             clearInterval(data.timer)
+    //             break;
+    //     }
+    //     console.log(data)
+    // })
     socket.on('answer_selected', (param) => {
         console.log('answer_selected messsage has come');
         const myGameData = mapGameData[param.roomName];

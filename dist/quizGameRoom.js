@@ -72,6 +72,8 @@ const updateGameBoard = () => {
 };
 const onDivAnswerClickced = (event) => {
     event.preventDefault();
+    if (gameData.timer == null)
+        return;
     let selected = -1;
     switch (event.target) {
         case divAnswer1:
@@ -197,6 +199,7 @@ socket.on('div_selected_data', function (msg) {
     updateDivArea();
 });
 socket.on('winner', function (result) {
+    gameData.timer = null;
     if (playerNo === result.winner) {
         const token = document.querySelector('meta[name="_csrf"]').getAttribute("content");
         const header = document.querySelector('meta[name="_csrf_header"]').getAttribute("content");
@@ -226,10 +229,10 @@ socket.on('winner', function (result) {
         dataResult.catch((err) => {
             console.log(err);
         });
-        confirm(" 승 리 " + "winner :" + result.winnerId + " loser :" + result.loserId);
+        confirm(" 정답입니다 승리기록을 올립니다 " + "winner :" + result.winnerId);
     }
     else {
-        confirm(" 패 배 ");
+        confirm(" 틀렸습니다 ");
     }
     window.location.href = "/quiz/waitingroom";
 });
