@@ -1,5 +1,5 @@
 const { io } = require("socket.io");
-import { QuizDataType,  } from "./quizDataType";
+import { QuizDataType, SelAnswerParamType } from "./quizDataType";
 import { StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType} from "./commonType"
 
 let playerNo :string
@@ -17,8 +17,6 @@ const txtUserNick : string = userNickname.textContent
 // 방이름 정하기 -- html th:text 에서 들어옴
 const strRoomName = document.getElementById("divRoomName").textContent
 
-
-
 if( document.getElementById("divPlayerNo0") != null ){
     playerNo = document.getElementById("divPlayerNo0").textContent
 } else {
@@ -34,13 +32,63 @@ const txtChatMsg:HTMLInputElement  = <HTMLInputElement>document.getElementById("
 const taChatMsg:HTMLTextAreaElement = <HTMLTextAreaElement>document.getElementById("taChatMsg")
 let gameData : QuizDataType = null
 
+// timber 문제 및 답안 영역 설정
+const divTimer : HTMLDivElement = document.getElementById("divTimer") as HTMLDivElement | null
+const divProblem : HTMLDivElement = document.getElementById("divProblem") as HTMLDivElement | null
+const divAnswer1 : HTMLDivElement = document.getElementById("divAnswer1") as HTMLDivElement | null
+const divAnswer2 : HTMLDivElement = document.getElementById("divAnswer2") as HTMLDivElement | null
+const divAnswer3 : HTMLDivElement = document.getElementById("divAnswer3") as HTMLDivElement | null
+const divAnswer4 : HTMLDivElement = document.getElementById("divAnswer4") as HTMLDivElement | null
+const divAreas : NodeListOf<HTMLDivElement> = document.querySelectorAll("#quizArea > div")
+
 const Cons = {
+}
+
+const updateDivArea = () => {
+    for(let i=0; i<4; i++) divAreas[i+2].style.backgroundColor='#eeeeee'
+    switch(gameData.player0_selected){
+        case 1 :  divAnswer1.style.backgroundColor = '#FFA500' ; break;
+        case 2 :  divAnswer2.style.backgroundColor = '#FFA500' ; break;
+        case 3 :  divAnswer3.style.backgroundColor = '#FFA500' ; break;
+        case 4 :  divAnswer4.style.backgroundColor = '#FFA500' ; break;
+    }
+    switch(gameData.player1_selected){
+        case 1 :  divAnswer1.style.backgroundColor = '#87CEEB' ; break;
+        case 2 :  divAnswer2.style.backgroundColor = '#87CEEB' ; break;
+        case 3 :  divAnswer3.style.backgroundColor = '#87CEEB' ; break;
+        case 4 :  divAnswer4.style.backgroundColor = '#87CEEB' ; break;
+    }
 }
 
 // // *******화면을 현재 gameData로 update ******
 const updateGameBoard = () :void  => {
+    updateDivArea()
 
+    divTimer.innerText = gameData.timeRemain.toString()
 }
+
+const onDivAnswerClickced  = (event : MouseEvent) : void => {
+    event.preventDefault()
+    let selected : number = -1
+    switch(event.target){
+        case divAnswer1 : selected = 1; break;
+        case divAnswer2 : selected = 2; break;
+        case divAnswer3 : selected = 3; break;
+        case divAnswer4 : selected = 4; break;
+    }
+    console.log("selected : " + selected)
+    const param : SelAnswerParamType = {
+        roomName : strRoomName,
+        playerNo : playerNo,
+        clickedDivision : selected
+    }
+    socket.emit('answer_selected', param)
+}
+
+divAnswer1.addEventListener('click', onDivAnswerClickced)
+divAnswer2.addEventListener('click', onDivAnswerClickced)
+divAnswer3.addEventListener('click', onDivAnswerClickced)
+divAnswer4.addEventListener('click', onDivAnswerClickced)
 
 const sendChatMessage = (event) => {
     event.preventDefault();
@@ -68,46 +116,6 @@ const onStartButtonClicked = (event) : void => {
 }
 
 btnStart.addEventListener('click', onStartButtonClicked)
-
-const onBtnLeftClikced = (event) => {
-    event.preventDefault()
-    const data : gameActionParamType = {
-        roomName : strRoomName,
-        playerNo : playerNo, 
-        action : 'btnLeftClicked'
-    }
-    socket.emit('gameData', data)
-}
-
-// ******* left button 관련 설정  ******
-const btnLeft = document.getElementById("toLeft")
-btnLeft.addEventListener('click', onBtnLeftClikced)
-
-const onBtnRightClikced = (event) => {
-    event.preventDefault()
-    const data : gameActionParamType = {
-        roomName : strRoomName,
-        playerNo : playerNo, 
-        action : 'btnRightClicked'
-    }
-
-    socket.emit('gameData', data)
-}
-
-// ******* Right button 관련 설정  ******
-const btnRight = document.getElementById("toRight")
-btnRight.addEventListener('click', onBtnRightClikced)
-
-const onStopButtonClikced = (event) => {
-    event.preventDefault()
-    socket.emit('stopGame', playerNo, strRoomName)
-}
-
-// ******* Stop button 관련 설정  ******
-const btnStop = document.getElementById("stopGame")
-btnStop.addEventListener('click', onStopButtonClikced)
-
-
 
 // ******* 게임 서버 접속  ******
 const socket = io("http://localhost:3002/quiz", {path :"/socket.io"
@@ -164,26 +172,33 @@ socket.on('chat message', function(msg:string) {
 socket.on('prepareForStart', function(msg : QuizDataType) {
     console.log("game data in prepareForStart", msg)
     gameData = msg  
-    updateGameBoard()
+    updateGameBoard()  
     btnStart.removeAttribute('disabled')
 });
 
-socket.on('started', () => {
-    btnStop.removeAttribute('disabled')
-})
-
-socket.on('stopped', (playerno:string) => {
-    alert(playerno + " stooped Game 준비되면 Start Button을 누르세요")
-    btnStart.removeAttribute('disabled')
-    btnStop.setAttribute('disabled', 'true')
-})
 
 // // ******* 받은 gameData 처리 => 화면 updata  ******
 socket.on('gameData', function(msg : QuizDataType) {
     console.log("game data", msg)
     gameData = msg
-    updateGameBoard()
+    console.log(gameData.problem, console.log(divProblem))
+    if(gameData.problem != null && divProblem.innerText == "문제영역") updateQuizArea()
+    updateGameBoard()  // timer만
 });
+
+const updateQuizArea = () => {
+    divProblem.innerText = gameData.problem
+    divAnswer1.innerText = gameData.select1
+    divAnswer2.innerText = gameData.select2
+    divAnswer3.innerText = gameData.select3
+    divAnswer4.innerText = gameData.select4
+}
+
+socket.on('div_selected_data', function(msg : QuizDataType) {
+    console.log("game data", msg)
+    gameData = msg  // 받은 gameData로 현재 gameData update후 새로 그려줌
+    updateDivArea()
+})
 
 socket.on('winner', function(result : GameResultParaType) {
 

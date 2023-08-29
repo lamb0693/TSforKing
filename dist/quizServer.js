@@ -3,17 +3,7 @@ const app = express();
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-const Cons = {
-    LEFT: 10,
-    RIGHT: 410,
-    TOP: 10,
-    BOTTOM: 510,
-    PADDLE_SIZE: 80,
-    P0_TOP: 40,
-    P1_TOP: 480,
-    PAD_HALF_THICK: 10,
-    BALL_RADIUS: 10
-};
+const Cons = {};
 //*********game 관련 data ********** */
 const mapGameData = {};
 const ioServer = new Server(server, {
@@ -152,11 +142,28 @@ quiz.on('connection', (socket) => {
             gameResult.loserId = data.player0_id;
         }
         delete mapGameData[roonName];
-        // ** *******************/
-        //** 승패 결과 Ajax로 up */
-        // ******************* */
         console.log(winner + " Win");
-        quiz.to(roonName).emit('winner', gameResult);
+        quiz.to(roonName).emit('winner', gameResult); // 승패 결과는 client에서 올림
+    };
+    const setProblem = (roomName) => {
+        const resultProm = fetch("http://localhost:3006/quiz");
+        const dataProm = resultProm.then((result) => {
+            //console.log(result)
+            return result.json();
+        });
+        const errorProm = dataProm.then((data) => {
+            let gamedata = mapGameData[roomName];
+            gamedata.problem = data[0]["quiz"];
+            gamedata.select1 = data[0]["sel1"];
+            gamedata.select2 = data[0]["sel2"];
+            gamedata.select3 = data[0]["sel3"];
+            gamedata.select4 = data[0]["sel4"];
+            gamedata.answer = data[0]["answer"];
+            //console.log(gamedata)
+        });
+        errorProm.catch((err) => {
+            console.log(err);
+        });
     };
     const prepareGame = (roomName, txtUserId, txtUserNick, socketId, playerNo) => {
         //gameData가 있는지 확인후 없으면 만듬 있으면 socket과 userId passwd 수정
@@ -165,19 +172,36 @@ quiz.on('connection', (socket) => {
                 p0_prepared: false,
                 p1_prepared: false,
                 roomName: roomName,
+                problem: null,
+                select1: null,
+                select2: null,
+                select3: null,
+                select4: null,
+                answer: 0,
                 callback: () => {
                     let data = mapGameData[roomName];
                     // game 진행
+                    data.timeRemain--;
+                    if (data.timeRemain == 0){
+                        clearInterval(data.timer);
+                        if(data.player0_selected === data.answer) endGame('player0', data.rommName)
+                        else if(data.player1_selected === data.answer) endGame('player1', data.rommName)
+                        else endGame('nowinner', data.rommName)
+                    }
+                    
                     //console.log("callback : " + roomName)
                     quiz.to(roomName).emit('gameData', data);
                 },
+                timeRemain: 60,
                 timer: null,
                 socketid0: null,
                 socketid1: null,
                 player0_id: null,
                 player1_id: null,
                 player0_nickname: null,
-                player1_nickname: null
+                player1_nickname: null,
+                player0_selected: -1,
+                player1_selected: -1
             };
             mapGameData[roomName] = gameData;
         }
@@ -245,51 +269,51 @@ quiz.on('connection', (socket) => {
         if (param.playerNo === 'player1')
             myGameData.p1_prepared = true;
         if (myGameData.p0_prepared == true && myGameData.p1_prepared == true) {
+            setProblem(param.roomName); //문제 setting하고 timer start
             console.log(param.roomName + "Start game.... ");
             myGameData.timer = setInterval(myGameData.callback, 100);
             // Start를 시키면 stop버튼을 활성화 시키기 위해 started msg를 보내고 
             // 재시작 위해 prepared를 false로 바꿈
-            quiz.to(myGameData.roomName).emit('started');
+            // 시작되면 문제 setting
+            //quiz.to(myGameData.roomName).emit('started') //*** */ 받는 부분 있나? 체크 해 보자
             myGameData.p0_prepared = false;
             myGameData.p1_prepared = false;
         }
     });
-    socket.on('stopGame', (playerno, roomName) => {
-        // map에서 roomName을 찾음
-        const myGameData = mapGameData[roomName];
-        // timer를 멈추고
-        if (myGameData.timer != null) {
-            clearInterval(myGameData.timer);
-            myGameData.timer = null;
-        }
-        // 멈추었다는 message와 멈춘 사람을 보냄
-        quiz.to(roomName).emit('stopped', playerno);
-    });
+    // socket.on('stopGame', ( playerno: string, roomName : string ) => {
+    //     // map에서 roomName을 찾음
+    //     const myGameData : QuizDataType = mapGameData[roomName]
+    //     // timer를 멈추고
+    //     if(myGameData.timer != null) {
+    //         clearInterval(myGameData.timer)
+    //         myGameData.timer = null
+    //     }
+    //     // 멈추었다는 message와 멈춘 사람을 보냄
+    //     quiz.to(roomName).emit('stopped', playerno)
+    // })
     socket.on('gameData', (param) => {
         const data = mapGameData[param.roomName];
         console.log(param);
         switch (param.action) {
-            case 'btnLeftClicked':
-                if (param.playerNo === 'player0') {
-                    //console.log("0 l")
-                }
-                else if (param.playerNo === 'player1') {
-                    //console.log("1 l")
-                }
-                break;
-            case 'btnRightClicked':
-                if (param.playerNo === 'player0') {
-                    //console.log("0 r")
-                }
-                else if (param.playerNo === 'player1') {
-                    //console.log("1 r")
-                }
-                break;
             case 'stop':
                 clearInterval(data.timer);
                 break;
         }
         console.log(data);
+    });
+    socket.on('answer_selected', (param) => {
+        console.log('answer_selected messsage has come');
+        const myGameData = mapGameData[param.roomName];
+        console.log(myGameData.player0_selected, myGameData.player1_selected, param.clickedDivision);
+        if (param.clickedDivision == myGameData.player0_selected)
+            return;
+        if (param.clickedDivision == myGameData.player1_selected)
+            return;
+        if (param.playerNo == 'player0')
+            myGameData.player0_selected = param.clickedDivision;
+        else
+            myGameData.player1_selected = param.clickedDivision;
+        //quiz.to(param.roomName).emit('div_selected_data', myGameData) //**** */ 화면 갱신을 양측에서 하면 안되는 듯 ****///
     });
     // ********* CHAT MESSAGE EVENT ******************//
     socket.on('chatData', (param) => {
