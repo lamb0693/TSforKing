@@ -15,6 +15,10 @@ const Cons = {
     BOTTOM : 510,
     PADDLE_SIZE : 80,
     PLAYER_TOP : 480, // 30-50
+    MAX_SPEED : 10,
+    DDONG_MAX_SIZE : 30,
+    GAME_SPEED : 100,
+    MAKE_DDONG_INTERVAL : 20
 }
 
 //*********game 관련 data ********** */
@@ -178,7 +182,7 @@ ddong.on('connection', (socket) => {
         //gameData가 있는지 확인후 없으면 만듬 있으면 socket과 userId passwd 수정
         if( mapGameData[roomName] == null ) {
             let gameData : DdongDataType = {
-                count :1,
+                count :0,
                 gameId : 'ddong' + Date.now(),
                 p0_x: 200,
                 p1_x: 200,
@@ -188,18 +192,24 @@ ddong.on('connection', (socket) => {
                 roomName : roomName,
                 callback: () => {
                     let data : DdongDataType = mapGameData[roomName]
-                    data.count++
+
+                    let new_x =  Math.floor(Math.random() * (Cons.RIGHT - Cons.LEFT - Cons.DDONG_MAX_SIZE)) + 1
+                    let new_speed = Math.floor(Math.random() * Cons.MAX_SPEED )+ 1
                     const newDddong : DdongType= {
-                        top : 100,
-                        left : 100,
+                        top : 10,
+                        left : new_x,
                         width : 20,
                         height : 20,
-                        speed : 5
+                        speed : new_speed
                     }
-                    if(data.count%10 == 0) data.ddongs.push(newDddong)
+                    if(data.count%Cons.MAKE_DDONG_INTERVAL == 0) data.ddongs.push(newDddong)
                     for(let xxx of data.ddongs){
                         xxx.top = xxx.top+xxx.speed
                     }
+                    data.ddongs = data.ddongs.filter( (xxx) => (xxx.top<500))
+                    data.count++
+
+ 
                     
                     // 게임 진행 과정
 
@@ -284,7 +294,7 @@ ddong.on('connection', (socket) => {
         if(param.playerNo === 'player1') myGameData.p1_prepared = true
         if(myGameData.p0_prepared==true && myGameData.p1_prepared == true){
             console.log(param.roomName + "Start game.... ")
-            myGameData.timer = setInterval(myGameData.callback, 3000)
+            myGameData.timer = setInterval(myGameData.callback, Cons.GAME_SPEED)
             // Start를 시키면 stop버튼을 활성화 시키기 위해 started msg를 보내고 
             // 재시작 위해 prepared를 false로 바꿈
             ddong.to(myGameData.roomName).emit('started')
