@@ -3,7 +3,11 @@ const app = express();
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
+// fetch 시  IPV4 우선 사용 설정 아니면 error
+const dns = require('node:dns');
+dns.setDefaultResultOrder('ipv4first');
 const Cons = {};
+const JWT_TOKEN = "Bearer:" + process.argv[2];
 //*********game 관련 data ********** */
 const mapGameData = {};
 const ioServer = new Server(server, {
@@ -150,20 +154,27 @@ quiz.on('connection', (socket) => {
         quiz.to(roonName).emit('winner', gameResult); // 승패 결과는 client에서 올림
     };
     const setProblem = (roomName) => {
-        const resultProm = fetch("http://localhost:3006/quiz");
+        const resultProm = fetch("http://localhost:8080/quiz/token/getquiz", {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                'Authorization': JWT_TOKEN
+            }
+        });
         const dataProm = resultProm.then((result) => {
             //console.log(result)
             return result.json();
         });
         const errorProm = dataProm.then((data) => {
             let gamedata = mapGameData[roomName];
-            gamedata.problem = data[0]["quiz"];
-            gamedata.select1 = data[0]["sel1"];
-            gamedata.select2 = data[0]["sel2"];
-            gamedata.select3 = data[0]["sel3"];
-            gamedata.select4 = data[0]["sel4"];
-            gamedata.answer = data[0]["answer"];
-            //console.log(gamedata)
+            console.log(data);
+            gamedata.problem = data["problem"];
+            gamedata.select1 = data["sel1"];
+            gamedata.select2 = data["sel2"];
+            gamedata.select3 = data["sel3"];
+            gamedata.select4 = data["sel4"];
+            gamedata.answer = data["answer"];
+            console.log(gamedata);
         });
         errorProm.catch((err) => {
             console.log(err);
@@ -328,7 +339,9 @@ quiz.on('connection', (socket) => {
         quiz.to(param.rommName).emit('chat message', param.nickname + ':' + param.message);
     });
 });
+// Program Entry Point
+console.log(JWT_TOKEN);
 server.listen(3002, () => {
     console.log("Quiz Server listening...3002");
 });
-//export {};
+export {};

@@ -3,18 +3,23 @@ const app = express();
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-// fetch 시  IPV4 우선 사용 설정 아니면 error
-const dns= require('node:dns');
-dns.setDefaultResultOrder('ipv4first');
-// ****
 
-import { QuizDataType, GameDataMap, QuizType, SelAnswerParamType } from "./quizDataType";
+import { DdongDataType,  GameDataMap, DdongType } from "./DdongDataType";
 import { StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType } from "./commonType";
 
-const Cons = {
-}
 
-const JWT_TOKEN = "Bearer:" + process.argv[2]
+const Cons = {
+    LEFT : 10,
+    RIGHT : 410,
+    TOP : 10,
+    BOTTOM : 510,
+    PADDLE_SIZE : 80,
+    PLAYER_TOP : 480, // 30-50
+    MAX_SPEED : 10,
+    DDONG_MAX_SIZE : 30,
+    GAME_SPEED : 100,
+    MAKE_DDONG_INTERVAL : 20
+}
 
 //*********game 관련 data ********** */
 const mapGameData : GameDataMap = {}
@@ -25,35 +30,35 @@ const ioServer = new Server(server, {
   }
 });
 
-const quiz = ioServer.of('/quiz')
+const ddong = ioServer.of('/ddong')
 
 
 // 아래 두개의 구조는 항상 일치시키자 . 변화 시킬때 마다 update 부르고
-let quizRooms = null  // adapter로 구할 방
-let quizRoomsTransfer = [] // transfer 용 array를 만듬
+let ddongRooms = null  // adapter로 구할 방
+let ddongRoomsTransfer = [] // transfer 용 array를 만듬
 
-// server의 quizRooms, quizRoomsTransfer 를 update //
-const updateRoom = (quiz) => {
-    quizRooms = quiz.adapter.rooms;
-    quizRoomsTransfer = []
-    quizRooms.forEach( (room, roomName) => {
+// server의 ddongRooms, ddongRoomsTransfer 를 update //
+const updateRoom = (ddong) => {
+    ddongRooms = ddong.adapter.rooms;
+    ddongRoomsTransfer = []
+    ddongRooms.forEach( (room, roomName) => {
         //console.log(roomName.length)
         //** id를 15자 이하로 꼭 하자 */
         if(roomName.length <= 15){
-            quizRoomsTransfer.push( {
+            ddongRoomsTransfer.push( {
                 'roomName' : roomName,
                 'roomSize' : room.size
             } )
         }
     })
-    //console.log('roomList : ', quizRoomsTransfer)
+    //console.log('roomList : ', ddongRoomsTransfer)
 }
 
 const checkExistRoomByName = (roomName) => {
     let bExist : boolean
     bExist = false
-    for(let i:number =0; i<quizRoomsTransfer.length; i++){
-        if(quizRoomsTransfer[i].roomName == roomName){
+    for(let i:number =0; i<ddongRoomsTransfer.length; i++){
+        if(ddongRoomsTransfer[i].roomName == roomName){
             bExist = true
             break
         } 
@@ -63,18 +68,18 @@ const checkExistRoomByName = (roomName) => {
 }
 
 const getRoomSize = (roomName) => {
-    for(let i:number =0; i<quizRoomsTransfer.length; i++){
-        if( quizRoomsTransfer[i].roomName === roomName) return quizRoomsTransfer[i].roomSize
+    for(let i:number =0; i<ddongRoomsTransfer.length; i++){
+        if( ddongRoomsTransfer[i].roomName === roomName) return ddongRoomsTransfer[i].roomSize
     }
     return -1
 }
 
 const updateRoomAndSendRoomListtoAllClient = () => {
-    updateRoom(quiz) 
-    quiz.emit('quiz_rooms_info', quizRoomsTransfer )  // 방 list를 보낸다 get_room_list callback으로 대체
+    updateRoom(ddong) 
+    ddong.emit('ddong_rooms_info', ddongRoomsTransfer )  // 방 list를 보낸다 get_room_list callback으로 대체
 }
 
-quiz.on('connection', (socket) => {
+ddong.on('connection', (socket) => {
     console.log('a user connected')
     updateRoomAndSendRoomListtoAllClient()
 
@@ -89,11 +94,11 @@ quiz.on('connection', (socket) => {
         for(const [key, value] of Object.entries(mapGameData)){
             if(value.socketid0 === socket.id){
                 console.log("player0 나감 종료 처리 필요함")
-                quiz.to(value.roomName).emit('chat message', "상대방이 나갔습니다")
+                ddong.to(value.roomName).emit('chat message', "상대방이 나갔습니다")
                 endGame('player1', value.roomName)
             } else if(value.socketid1 === socket.id){
                 console.log("player1 나감 종료 처리 필요함") 
-                quiz.to(value.roomName).emit('chat message', "상대방이 나갔습니다")
+                ddong.to(value.roomName).emit('chat message', "상대방이 나갔습니다")
                 endGame('player0', value.roomName)  
             }
         }
@@ -104,21 +109,21 @@ quiz.on('connection', (socket) => {
     /*********get_room_list 에 대한 처리 ***** 없어도 되는지 체크 요망*********/
     /*********room을 updaet후 clientCallback 에 roomList 넣어 실행 **************/
     socket.on('get_room_list', (msg : string, clientCallback) => {
-        updateRoom(quiz)
+        updateRoom(ddong)
         //console.log(msg)
         //console.log('updateRoom with client callback ')
-        // console.log('callback : ', quizRoomsTransfer)
-        clientCallback(quizRoomsTransfer)
+        // console.log('callback : ', ddongRoomsTransfer)
+        clientCallback(ddongRoomsTransfer)
     })  
       
     // *********** CREATE ROOM ******************//
-    socket.on('quiz_create_room', (roomName : string, clientCallback : (msg:string)=>void ) => {
+    socket.on('ddong_create_room', (roomName : string, clientCallback : (msg:string)=>void ) => {
         console.log('requested room name : '  + roomName)
 
         // 있으면 clientCallback('fail') 
         // 없으면 join(방 만들기) clientCallback('success') 실행 
         if( checkExistRoomByName(roomName) ) {
-            //console.log("on quiz_create_room : room exist")
+            //console.log("on ddong_create_room : room exist")
             clientCallback('fail')
         } else {
             //console.log("make new room " + roomName)
@@ -129,7 +134,7 @@ quiz.on('connection', (socket) => {
     })    
 
     // *********** JOIN ROOM ******************//
-    socket.on('quiz_join_room', (roomName, clientCallback : (msg:string)=>void ) => {
+    socket.on('ddong_join_room', (roomName, clientCallback : (msg:string)=>void ) => {
         //console.log('requested room name : '  + roomName)
         // 있으면 join(방 조인) clientCallback('success') 실행 
         // 없으면 clientCallback('fail') 
@@ -146,11 +151,11 @@ quiz.on('connection', (socket) => {
             //console.log("join room not exist " + roomName)
             clientCallback('fail')
         }
-        //socket.emit('quiz_rooms_info', quizRoomsTransfer) // callbakc으로 대치
+        //socket.emit('ddong_rooms_info', ddongRoomsTransfer) // callbakc으로 대치
     })  
 
     const endGame = (winner : string, roonName : string) => {
-        let data : QuizDataType = mapGameData[roonName]
+        let data : DdongDataType = mapGameData[roonName]
         
         clearInterval(data.timer)
 
@@ -162,92 +167,62 @@ quiz.on('connection', (socket) => {
         if (gameResult.winner === "player0" ) {
             gameResult.winnerId = data.player0_id
             gameResult.loserId = data.player1_id
-        } else if(gameResult.winner === "player1") {
+        } else {
             gameResult.winnerId = data.player1_id
             gameResult.loserId = data.player0_id   
-        } else {
-            gameResult.winnerId = "NoWinner"
-            gameResult.loserId = "NoLoser"
         }
         
         delete mapGameData[roonName]
-
         console.log(winner + " Win")
 
-        quiz.to(roonName).emit('winner', gameResult)  // 승패 결과는 client에서 올림
-    }
-
-    const setProblem = (roomName : string) : void =>  {
-        const resultProm  = fetch("http://localhost:8080/quiz/token/getquiz", {
-            method : "GET",
-            credentials: "include",
-            headers: {
-                'Authorization': JWT_TOKEN
-            }
-        } )
-
-        const dataProm = resultProm.then( (result) => {
-            //console.log(result)
-            return result.json()
-        })
-        
-        const errorProm = dataProm.then( (data) => {
-            let gamedata = mapGameData[roomName];
-            console.log(data)
-            gamedata.problem = data["problem"];
-            gamedata.select1 = data["sel1"];
-            gamedata.select2 = data["sel2"];
-            gamedata.select3 = data["sel3"];
-            gamedata.select4 = data["sel4"];
-            gamedata.answer = data["answer"];
-            console.log(gamedata);
-        })
-
-        errorProm.catch( (err) => {
-            console.log(err)
-        })
-        
+        ddong.to(roonName).emit('winner', gameResult)
     }
 
     const prepareGame = (roomName : string, txtUserId : string, txtUserNick : string, socketId : string, playerNo : number) => {
         //gameData가 있는지 확인후 없으면 만듬 있으면 socket과 userId passwd 수정
         if( mapGameData[roomName] == null ) {
-            let gameData : QuizDataType = {
+            let gameData : DdongDataType = {
+                count :0,
+                gameId : 'ddong' + Date.now(),
+                p0_x: 200,
+                p1_x: 200,
+                ddongs : [],
                 p0_prepared: false,
                 p1_prepared: false,
                 roomName : roomName,
-                problem : null,
-                select1 : null,
-                select2 : null,
-                select3 : null,
-                select4 : null,
-                answer : 0,
                 callback: () => {
-                    let data : QuizDataType = mapGameData[roomName]
-                    
-                    // game 진행
-                    data.timeRemain --
-                    if (data.timeRemain == 0){
-                        clearInterval(data.timer);
-                        data.timer = null
-                        if(data.player0_selected === data.answer) endGame('player0', data.roomName)
-                        else if(data.player1_selected === data.answer) endGame('player1', data.roomName)
-                        else endGame('nowinner', data.roomName)
+                    let data : DdongDataType = mapGameData[roomName]
+
+                    let new_x =  Math.floor(Math.random() * (Cons.RIGHT - Cons.LEFT - Cons.DDONG_MAX_SIZE)) + 1
+                    let new_speed = Math.floor(Math.random() * Cons.MAX_SPEED )+ 1
+                    const newDddong : DdongType= {
+                        top : 10,
+                        left : new_x,
+                        width : 20,
+                        height : 20,
+                        speed : new_speed
                     }
+                    if(data.count%Cons.MAKE_DDONG_INTERVAL == 0) data.ddongs.push(newDddong)
+                    for(let xxx of data.ddongs){
+                        xxx.top = xxx.top+xxx.speed
+                    }
+                    data.ddongs = data.ddongs.filter( (xxx) => (xxx.top<500))
+                    data.count++
+
+ 
+                    
+                    // 게임 진행 과정
 
                     //console.log("callback : " + roomName)
-                    quiz.to(roomName).emit('gameData', data)
+                    ddong.to(roomName).emit('gameData', data)
                 },
-                timeRemain : 100,
                 timer : null,
                 socketid0 : null,
                 socketid1 : null,
                 player0_id : null,
                 player1_id : null,
                 player0_nickname : null,
-                player1_nickname : null,
-                player0_selected : -1,
-                player1_selected : -1
+                player1_nickname : null
             };
 
             mapGameData[roomName] = gameData
@@ -263,19 +238,19 @@ quiz.on('connection', (socket) => {
             mapGameData[roomName].player1_nickname = txtUserNick
         } 
     
-        quiz.to(roomName).emit('prepareForStart', mapGameData[roomName])
+        ddong.to(roomName).emit('prepareForStart', mapGameData[roomName])
         //console.log("emitting prepareForStart", mapGameData[roomName])
     }
     
     // *********** CREATE ROOM FROM GameRoom ******************//
-    socket.on('quiz_create_room_from_gameroom', (roomName : string, txtUserId : string, txtUserNick : string,
+    socket.on('ddong_create_room_from_gameroom', (roomName : string, txtUserId : string, txtUserNick : string,
             clientCallback : (result :string)=>void ) => {
         console.log('requested room name : '  + roomName)
 
         // 있으면 clientCallback('fail') 
         // 없으면 join(방 만들기) clientCallback('success') 실행 
         if( checkExistRoomByName(roomName) ) {
-            //console.log("on quiz_create_room : room exist")
+            //console.log("on ddong_create_room : room exist")
             clientCallback('fail')
         } else {
             //console.log("make new room " + roomName)
@@ -289,7 +264,7 @@ quiz.on('connection', (socket) => {
     
     // ********** playerNo가 1이 아니라 0에서올수 있을지 확인해 보자 *********/
     // *********** JOIN ROOM FROM GameRoom******************//
-    socket.on('quiz_join_room_from_gameroom', (roomName : string, txtUserId : string, txtUserNick : string,
+    socket.on('ddong_join_room_from_gameroom', (roomName : string, txtUserId : string, txtUserNick : string,
             clientCallback : (result :string)=>void) => {
         //console.log('requested room name : '  + roomName)
         // 있으면 join(방 조인) clientCallback('success') 실행 
@@ -309,77 +284,80 @@ quiz.on('connection', (socket) => {
             //console.log("join room not exist " + roomName)
             clientCallback('fail')
         }
-        //socket.emit('quiz_rooms_info', quizRoomsTransfer) // callbakc으로 대치 하였음
+        //socket.emit('ddong_rooms_info', ddongRoomsTransfer) // callbakc으로 대치 하였음
     }) 
     
     socket.on('startGame', (param : StartGameParamType) => {
-        console.log("startGame message has come" + param.playerNo)
         // map에서 roomName을 찾음
-        const myGameData : QuizDataType = mapGameData[param.roomName]
+        const myGameData : DdongDataType = mapGameData[param.roomName]
         if(param.playerNo === 'player0') myGameData.p0_prepared = true
         if(param.playerNo === 'player1') myGameData.p1_prepared = true
         if(myGameData.p0_prepared==true && myGameData.p1_prepared == true){
-            setProblem(param.roomName)   //문제 setting하고 timer start
             console.log(param.roomName + "Start game.... ")
-            myGameData.timer = setInterval(myGameData.callback, 100)
+            myGameData.timer = setInterval(myGameData.callback, Cons.GAME_SPEED)
             // Start를 시키면 stop버튼을 활성화 시키기 위해 started msg를 보내고 
             // 재시작 위해 prepared를 false로 바꿈
-               // 시작되면 문제 setting
-            //quiz.to(myGameData.roomName).emit('started') //*** */ 받는 부분 있나? 체크 해 보자
-
+            ddong.to(myGameData.roomName).emit('started')
             myGameData.p0_prepared = false
             myGameData.p1_prepared = false
         }
     })
 
-    // socket.on('stopGame', ( playerno: string, roomName : string ) => {
-    //     // map에서 roomName을 찾음
-    //     const myGameData : QuizDataType = mapGameData[roomName]
-    //     // timer를 멈추고
-    //     if(myGameData.timer != null) {
-    //         clearInterval(myGameData.timer)
-    //         myGameData.timer = null
-    //     }
-    //     // 멈추었다는 message와 멈춘 사람을 보냄
-    //     quiz.to(roomName).emit('stopped', playerno)
-    // })
+    socket.on('stopGame', ( playerno: string, roomName : string ) => {
+        // map에서 roomName을 찾음
+        const myGameData : DdongDataType = mapGameData[roomName]
+        // timer를 멈추고
+        if(myGameData.timer != null) {
+            clearInterval(myGameData.timer)
+            myGameData.timer = null
+        }
+        // 멈추었다는 message와 멈춘 사람을 보냄
+        ddong.to(roomName).emit('stopped', playerno)
+    })
 
 
-    // socket.on('gameData', (param : gameActionParamType ) => {
-    //     const data : QuizDataType = mapGameData[param.roomName]
-    //     console.log(param)
+    socket.on('gameData', (param : gameActionParamType ) => {
+        const data : DdongDataType = mapGameData[param.roomName]
+        console.log(param)
 
-    //     switch(param.action){
-    //         case 'stop' :
-    //             clearInterval(data.timer)
-    //             break;
-    //     }
-    //     console.log(data)
-    // })
-
-    socket.on('answer_selected', (param : SelAnswerParamType) => {
-        console.log('answer_selected messsage has come')
-        const myGameData : QuizDataType = mapGameData[param.roomName]
-        console.log(myGameData.player0_selected, myGameData.player1_selected, param.clickedDivision)
-        if(param.clickedDivision == myGameData.player0_selected) return
-        if(param.clickedDivision == myGameData.player1_selected) return
-        if(param.playerNo=='player0') myGameData.player0_selected = param.clickedDivision
-        else myGameData.player1_selected = param.clickedDivision
-        //quiz.to(param.roomName).emit('div_selected_data', myGameData) //**** */ 화면 갱신을 양측에서 하면 안되는 듯 ****///
+        switch(param.action){
+            case 'btnLeftClicked' :
+                if(param.playerNo==='player0'){
+                    //console.log("0 l")
+                    data.p0_x -= 10
+                    if(data.p0_x < Cons.LEFT) data.p0_x = Cons.LEFT
+                } else if(param.playerNo==='player1') {
+                    data.p1_x -=10
+                    if(data.p1_x < Cons.LEFT) data.p1_x= Cons.LEFT
+                    //console.log("1 l")
+                }  
+                break;
+            case 'btnRightClicked' :
+                if(param.playerNo==='player0'){
+                    //console.log("0 r")
+                    data.p0_x += 10
+                    if(data.p0_x + Cons.PADDLE_SIZE > Cons.RIGHT) data.p0_x = Cons.RIGHT-Cons.PADDLE_SIZE
+                } else if(param.playerNo==='player1') {
+                    data.p1_x += 10
+                    if(data.p1_x + Cons.PADDLE_SIZE > Cons.RIGHT) data.p1_x = Cons.RIGHT-Cons.PADDLE_SIZE
+                    //console.log("1 r")
+                } 
+                break;
+            case 'stop' :
+                clearInterval(data.timer)
+                break;
+        }
+        console.log(data)
     })
 
 
     // ********* CHAT MESSAGE EVENT ******************//
     socket.on('chatData', (param : ChatParaType ) => {
-        quiz.to(param.rommName).emit('chat message', param.nickname+':'+param.message);
+        ddong.to(param.rommName).emit('chat message', param.nickname+':'+param.message);
     });
 
 });
 
-
-// Program Entry Point
-console.log(JWT_TOKEN)
-
-server.listen(3002, () => {
-    console.log("Quiz Server listening...3002");
+server.listen(3004, () => {
+    console.log('listening on *:3004');
 });

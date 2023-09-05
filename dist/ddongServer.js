@@ -9,10 +9,11 @@ const Cons = {
     TOP: 10,
     BOTTOM: 510,
     PADDLE_SIZE: 80,
-    P0_TOP: 40,
-    P1_TOP: 480,
-    PAD_HALF_THICK: 10,
-    BALL_RADIUS: 10
+    PLAYER_TOP: 480,
+    MAX_SPEED: 10,
+    DDONG_MAX_SIZE: 30,
+    GAME_SPEED: 100,
+    MAKE_DDONG_INTERVAL: 20
 };
 //*********game 관련 data ********** */
 const mapGameData = {};
@@ -21,31 +22,31 @@ const ioServer = new Server(server, {
         origin: '*'
     }
 });
-const ping = ioServer.of('/ping');
+const ddong = ioServer.of('/ddong');
 // 아래 두개의 구조는 항상 일치시키자 . 변화 시킬때 마다 update 부르고
-let pingRooms = null; // adapter로 구할 방
-let pingRoomsTransfer = []; // transfer 용 array를 만듬
-// server의 pingRooms, pingRoomsTransfer 를 update //
-const updateRoom = (ping) => {
-    pingRooms = ping.adapter.rooms;
-    pingRoomsTransfer = [];
-    pingRooms.forEach((room, roomName) => {
+let ddongRooms = null; // adapter로 구할 방
+let ddongRoomsTransfer = []; // transfer 용 array를 만듬
+// server의 ddongRooms, ddongRoomsTransfer 를 update //
+const updateRoom = (ddong) => {
+    ddongRooms = ddong.adapter.rooms;
+    ddongRoomsTransfer = [];
+    ddongRooms.forEach((room, roomName) => {
         //console.log(roomName.length)
         //** id를 15자 이하로 꼭 하자 */
         if (roomName.length <= 15) {
-            pingRoomsTransfer.push({
+            ddongRoomsTransfer.push({
                 'roomName': roomName,
                 'roomSize': room.size
             });
         }
     });
-    //console.log('roomList : ', pingRoomsTransfer)
+    //console.log('roomList : ', ddongRoomsTransfer)
 };
 const checkExistRoomByName = (roomName) => {
     let bExist;
     bExist = false;
-    for (let i = 0; i < pingRoomsTransfer.length; i++) {
-        if (pingRoomsTransfer[i].roomName == roomName) {
+    for (let i = 0; i < ddongRoomsTransfer.length; i++) {
+        if (ddongRoomsTransfer[i].roomName == roomName) {
             bExist = true;
             break;
         }
@@ -54,17 +55,17 @@ const checkExistRoomByName = (roomName) => {
     return bExist;
 };
 const getRoomSize = (roomName) => {
-    for (let i = 0; i < pingRoomsTransfer.length; i++) {
-        if (pingRoomsTransfer[i].roomName === roomName)
-            return pingRoomsTransfer[i].roomSize;
+    for (let i = 0; i < ddongRoomsTransfer.length; i++) {
+        if (ddongRoomsTransfer[i].roomName === roomName)
+            return ddongRoomsTransfer[i].roomSize;
     }
     return -1;
 };
 const updateRoomAndSendRoomListtoAllClient = () => {
-    updateRoom(ping);
-    ping.emit('ping_rooms_info', pingRoomsTransfer); // 방 list를 보낸다 get_room_list callback으로 대체
+    updateRoom(ddong);
+    ddong.emit('ddong_rooms_info', ddongRoomsTransfer); // 방 list를 보낸다 get_room_list callback으로 대체
 };
-ping.on('connection', (socket) => {
+ddong.on('connection', (socket) => {
     console.log('a user connected');
     updateRoomAndSendRoomListtoAllClient();
     // 만약 게임중이면 게임을 종료하고 승리 패패 처리를 해야 함
@@ -77,12 +78,12 @@ ping.on('connection', (socket) => {
         for (const [key, value] of Object.entries(mapGameData)) {
             if (value.socketid0 === socket.id) {
                 console.log("player0 나감 종료 처리 필요함");
-                ping.to(value.roomName).emit('chat message', "상대방이 나갔습니다");
+                ddong.to(value.roomName).emit('chat message', "상대방이 나갔습니다");
                 endGame('player1', value.roomName);
             }
             else if (value.socketid1 === socket.id) {
                 console.log("player1 나감 종료 처리 필요함");
-                ping.to(value.roomName).emit('chat message', "상대방이 나갔습니다");
+                ddong.to(value.roomName).emit('chat message', "상대방이 나갔습니다");
                 endGame('player0', value.roomName);
             }
         }
@@ -91,19 +92,19 @@ ping.on('connection', (socket) => {
     /*********get_room_list 에 대한 처리 ***** 없어도 되는지 체크 요망*********/
     /*********room을 updaet후 clientCallback 에 roomList 넣어 실행 **************/
     socket.on('get_room_list', (msg, clientCallback) => {
-        updateRoom(ping);
+        updateRoom(ddong);
         //console.log(msg)
         //console.log('updateRoom with client callback ')
-        // console.log('callback : ', pingRoomsTransfer)
-        clientCallback(pingRoomsTransfer);
+        // console.log('callback : ', ddongRoomsTransfer)
+        clientCallback(ddongRoomsTransfer);
     });
     // *********** CREATE ROOM ******************//
-    socket.on('ping_create_room', (roomName, clientCallback) => {
+    socket.on('ddong_create_room', (roomName, clientCallback) => {
         console.log('requested room name : ' + roomName);
         // 있으면 clientCallback('fail') 
         // 없으면 join(방 만들기) clientCallback('success') 실행 
         if (checkExistRoomByName(roomName)) {
-            //console.log("on ping_create_room : room exist")
+            //console.log("on ddong_create_room : room exist")
             clientCallback('fail');
         }
         else {
@@ -114,7 +115,7 @@ ping.on('connection', (socket) => {
         }
     });
     // *********** JOIN ROOM ******************//
-    socket.on('ping_join_room', (roomName, clientCallback) => {
+    socket.on('ddong_join_room', (roomName, clientCallback) => {
         //console.log('requested room name : '  + roomName)
         // 있으면 join(방 조인) clientCallback('success') 실행 
         // 없으면 clientCallback('fail') 
@@ -133,7 +134,7 @@ ping.on('connection', (socket) => {
             //console.log("join room not exist " + roomName)
             clientCallback('fail');
         }
-        //socket.emit('ping_rooms_info', pingRoomsTransfer) // callbakc으로 대치
+        //socket.emit('ddong_rooms_info', ddongRoomsTransfer) // callbakc으로 대치
     });
     const endGame = (winner, roonName) => {
         let data = mapGameData[roonName];
@@ -152,57 +153,42 @@ ping.on('connection', (socket) => {
             gameResult.loserId = data.player0_id;
         }
         delete mapGameData[roonName];
-        // ** *******************/
-        //** 승패 결과 Ajax로 up */
-        // ******************* */
         console.log(winner + " Win");
-        ping.to(roonName).emit('winner', gameResult);
+        ddong.to(roonName).emit('winner', gameResult);
     };
     const prepareGame = (roomName, txtUserId, txtUserNick, socketId, playerNo) => {
         //gameData가 있는지 확인후 없으면 만듬 있으면 socket과 userId passwd 수정
         if (mapGameData[roomName] == null) {
             let gameData = {
-                gameId: 'ping' + Date.now(),
+                count: 0,
+                gameId: 'ddong' + Date.now(),
                 p0_x: 200,
-                p0_y: Cons.P0_TOP,
                 p1_x: 200,
-                p1_y: Cons.P1_TOP,
-                ballX: 200,
-                ballY: 200,
-                ballMoveX: 5,
-                ballMoveY: 5,
+                ddongs: [],
                 p0_prepared: false,
                 p1_prepared: false,
                 roomName: roomName,
                 callback: () => {
                     let data = mapGameData[roomName];
-                    // 그릴때 볼 패들-Height는 중심을 기준으로 그림, 패들-width는 현 pos에서 우측으로 그림  을 참고해서
-                    // 수평 이동
-                    data.ballX += data.ballMoveX;
-                    if ((data.ballX + Cons.BALL_RADIUS) > Cons.RIGHT || (data.ballX - Cons.BALL_RADIUS) < Cons.LEFT)
-                        data.ballMoveX *= (-1);
-                    // 수직이동 아래 벽 체크 - 끝이니
-                    data.ballY += data.ballMoveY;
-                    if ((data.ballY + Cons.BALL_RADIUS) > Cons.BOTTOM || (data.ballY - Cons.BALL_RADIUS) < Cons.TOP)
-                        data.ballMoveY *= (-1);
-                    // player1 패들 체크  하부 패들
-                    if (data.ballMoveY > 0 && (data.ballY + Cons.BALL_RADIUS) > (Cons.P1_TOP - Cons.PAD_HALF_THICK)) { //볼 하부 > 패들 상부  통과후는 게임 종료 됨
-                        if (data.ballX > gameData.p1_x && (data.ballX < data.p1_x + Cons.PADDLE_SIZE))
-                            data.ballMoveY *= (-1);
+                    let new_x = Math.floor(Math.random() * (Cons.RIGHT - Cons.LEFT - Cons.DDONG_MAX_SIZE)) + 1;
+                    let new_speed = Math.floor(Math.random() * Cons.MAX_SPEED) + 1;
+                    const newDddong = {
+                        top: 10,
+                        left: new_x,
+                        width: 20,
+                        height: 20,
+                        speed: new_speed
+                    };
+                    if (data.count % Cons.MAKE_DDONG_INTERVAL == 0)
+                        data.ddongs.push(newDddong);
+                    for (let xxx of data.ddongs) {
+                        xxx.top = xxx.top + xxx.speed;
                     }
-                    // player0 패들 체크 상부 패들  올라가는 경우에만
-                    if (data.ballMoveY < 0 && (data.ballY - Cons.BALL_RADIUS) < (Cons.P0_TOP + Cons.PAD_HALF_THICK)) { //볼 상부 < 패들 하부  통과후는 게임 종료 됨
-                        if (data.ballX > gameData.p0_x && (data.ballX < data.p0_x + Cons.PADDLE_SIZE))
-                            data.ballMoveY *= (-1);
-                    }
-                    // 놓치면 게임 종료
-                    if ((data.ballY) < (Cons.P0_TOP - Cons.PAD_HALF_THICK))
-                        endGame('player1', data.roomName);
-                    if ((data.ballY) > (Cons.P1_TOP + Cons.PAD_HALF_THICK))
-                        endGame('player0', data.roomName);
-                    console.log(data.ballY + Cons.BALL_RADIUS, Cons.P0_TOP - Cons.PAD_HALF_THICK, Cons.P1_TOP + Cons.PAD_HALF_THICK);
+                    data.ddongs = data.ddongs.filter((xxx) => (xxx.top < 500));
+                    data.count++;
+                    // 게임 진행 과정
                     //console.log("callback : " + roomName)
-                    ping.to(roomName).emit('gameData', data);
+                    ddong.to(roomName).emit('gameData', data);
                 },
                 timer: null,
                 socketid0: null,
@@ -224,16 +210,16 @@ ping.on('connection', (socket) => {
             mapGameData[roomName].player1_id = txtUserId;
             mapGameData[roomName].player1_nickname = txtUserNick;
         }
-        ping.to(roomName).emit('prepareForStart', mapGameData[roomName]);
+        ddong.to(roomName).emit('prepareForStart', mapGameData[roomName]);
         //console.log("emitting prepareForStart", mapGameData[roomName])
     };
     // *********** CREATE ROOM FROM GameRoom ******************//
-    socket.on('ping_create_room_from_gameroom', (roomName, txtUserId, txtUserNick, clientCallback) => {
+    socket.on('ddong_create_room_from_gameroom', (roomName, txtUserId, txtUserNick, clientCallback) => {
         console.log('requested room name : ' + roomName);
         // 있으면 clientCallback('fail') 
         // 없으면 join(방 만들기) clientCallback('success') 실행 
         if (checkExistRoomByName(roomName)) {
-            //console.log("on ping_create_room : room exist")
+            //console.log("on ddong_create_room : room exist")
             clientCallback('fail');
         }
         else {
@@ -247,7 +233,7 @@ ping.on('connection', (socket) => {
     });
     // ********** playerNo가 1이 아니라 0에서올수 있을지 확인해 보자 *********/
     // *********** JOIN ROOM FROM GameRoom******************//
-    socket.on('ping_join_room_from_gameroom', (roomName, txtUserId, txtUserNick, clientCallback) => {
+    socket.on('ddong_join_room_from_gameroom', (roomName, txtUserId, txtUserNick, clientCallback) => {
         //console.log('requested room name : '  + roomName)
         // 있으면 join(방 조인) clientCallback('success') 실행 
         // 없으면 clientCallback('fail') 
@@ -268,7 +254,7 @@ ping.on('connection', (socket) => {
             //console.log("join room not exist " + roomName)
             clientCallback('fail');
         }
-        //socket.emit('ping_rooms_info', pingRoomsTransfer) // callbakc으로 대치 하였음
+        //socket.emit('ddong_rooms_info', ddongRoomsTransfer) // callbakc으로 대치 하였음
     });
     socket.on('startGame', (param) => {
         // map에서 roomName을 찾음
@@ -279,10 +265,10 @@ ping.on('connection', (socket) => {
             myGameData.p1_prepared = true;
         if (myGameData.p0_prepared == true && myGameData.p1_prepared == true) {
             console.log(param.roomName + "Start game.... ");
-            myGameData.timer = setInterval(myGameData.callback, 100);
+            myGameData.timer = setInterval(myGameData.callback, Cons.GAME_SPEED);
             // Start를 시키면 stop버튼을 활성화 시키기 위해 started msg를 보내고 
             // 재시작 위해 prepared를 false로 바꿈
-            ping.to(myGameData.roomName).emit('started');
+            ddong.to(myGameData.roomName).emit('started');
             myGameData.p0_prepared = false;
             myGameData.p1_prepared = false;
         }
@@ -296,7 +282,7 @@ ping.on('connection', (socket) => {
             myGameData.timer = null;
         }
         // 멈추었다는 message와 멈춘 사람을 보냄
-        ping.to(roomName).emit('stopped', playerno);
+        ddong.to(roomName).emit('stopped', playerno);
     });
     socket.on('gameData', (param) => {
         const data = mapGameData[param.roomName];
@@ -338,10 +324,10 @@ ping.on('connection', (socket) => {
     });
     // ********* CHAT MESSAGE EVENT ******************//
     socket.on('chatData', (param) => {
-        ping.to(param.rommName).emit('chat message', param.nickname + ':' + param.message);
+        ddong.to(param.rommName).emit('chat message', param.nickname + ':' + param.message);
     });
 });
-server.listen(3000, () => {
-    console.log('listening on *:3000');
+server.listen(3004, () => {
+    console.log('listening on *:3004');
 });
-export {};
+//export {};
