@@ -22,10 +22,11 @@ export type GameDataMap = {
 }
 
 export type DdongType = {
-    top : number;
-    left : number;
-    speed : number;
-    width : number;
-    height : number;
+    id : string,
+    top : number,
+    left : number,
+    speed : number,
+    width : number,
+    height : number,
 }
 

@@ -10,10 +10,11 @@ const Cons = {
     BOTTOM: 510,
     PADDLE_SIZE: 80,
     PLAYER_TOP: 480,
-    MAX_SPEED: 10,
+    DDONG_MIN_SPEED: 5,
+    DDONG_MAX_SPEED: 10,
     DDONG_MAX_SIZE: 30,
     GAME_SPEED: 100,
-    MAKE_DDONG_INTERVAL: 20
+    MAKE_DDONG_INTERVAL: 30
 };
 //*********game 관련 data ********** */
 const mapGameData = {};
@@ -171,12 +172,14 @@ ddong.on('connection', (socket) => {
                 callback: () => {
                     let data = mapGameData[roomName];
                     let new_x = Math.floor(Math.random() * (Cons.RIGHT - Cons.LEFT - Cons.DDONG_MAX_SIZE)) + 1;
-                    let new_speed = Math.floor(Math.random() * Cons.MAX_SPEED) + 1;
+                    let new_speed = Math.floor(Math.random() * (Cons.DDONG_MAX_SPEED - Cons.DDONG_MIN_SPEED)) + Cons.DDONG_MIN_SPEED;
+                    let ddong_id = "ddong" + gameData.count;
                     const newDddong = {
+                        id: ddong_id,
                         top: 10,
                         left: new_x,
-                        width: 20,
-                        height: 20,
+                        width: 30,
+                        height: 30,
                         speed: new_speed
                     };
                     if (data.count % Cons.MAKE_DDONG_INTERVAL == 0)
@@ -184,7 +187,7 @@ ddong.on('connection', (socket) => {
                     for (let xxx of data.ddongs) {
                         xxx.top = xxx.top + xxx.speed;
                     }
-                    data.ddongs = data.ddongs.filter((xxx) => (xxx.top < 500));
+                    data.ddongs = data.ddongs.filter((xxx) => (xxx.top < 480));
                     data.count++;
                     // 게임 진행 과정
                     //console.log("callback : " + roomName)
