@@ -15,10 +15,12 @@ const Cons = {
     BOTTOM : 510,
     PADDLE_SIZE : 80,
     PLAYER_TOP : 480, // 30-50
-    MAX_SPEED : 10,
+    CHAR_SIZE : 30,
+    DDONG_MIN_SPEED : 5,
+    DDONG_MAX_SPEED : 10,
     DDONG_MAX_SIZE : 30,
     GAME_SPEED : 100,
-    MAKE_DDONG_INTERVAL : 20
+    MAKE_DDONG_INTERVAL : 30
 }
 
 //*********game 관련 data ********** */
@@ -193,28 +195,37 @@ ddong.on('connection', (socket) => {
                 callback: () => {
                     let data : DdongDataType = mapGameData[roomName]
 
-                    let new_x =  Math.floor(Math.random() * (Cons.RIGHT - Cons.LEFT - Cons.DDONG_MAX_SIZE)) + 1
-                    let new_speed = Math.floor(Math.random() * Cons.MAX_SPEED )+ 1
+                    let new_x : number =  Math.floor(Math.random() * (Cons.RIGHT - Cons.LEFT - Cons.DDONG_MAX_SIZE)) + 1
+                    let new_speed : number = Math.floor(Math.random() * (Cons.DDONG_MAX_SPEED-Cons.DDONG_MIN_SPEED) )+ Cons.DDONG_MIN_SPEED
+                    let ddong_id : string = "ddong" + gameData.count
                     const newDddong : DdongType= {
+                        id : ddong_id,
                         top : 10,
                         left : new_x,
-                        width : 20,
-                        height : 20,
+                        width : 30,
+                        height : 30,
                         speed : new_speed
                     }
                     if(data.count%Cons.MAKE_DDONG_INTERVAL == 0) data.ddongs.push(newDddong)
                     for(let xxx of data.ddongs){
                         xxx.top = xxx.top+xxx.speed
                     }
-                    data.ddongs = data.ddongs.filter( (xxx) => (xxx.top<500))
+                    data.ddongs = data.ddongs.filter( (xxx) => (xxx.top<480))
                     data.count++
-
- 
-                    
-                    // 게임 진행 과정
 
                     //console.log("callback : " + roomName)
                     ddong.to(roomName).emit('gameData', data)
+
+                    // 충돌 체크 및 end game
+                    for(let xxx of data.ddongs){
+                        if(xxx.top > 440){
+                            if(xxx.left < (data.p0_x + Cons.CHAR_SIZE) && xxx.left > (data.p0_x - Cons.CHAR_SIZE) ){
+                                endGame("player1", data.roomName)
+                            } else if(xxx.left < (data.p1_x + Cons.CHAR_SIZE) && xxx.left > (data.p1_x - Cons.CHAR_SIZE)){
+                                endGame("player0", data.roomName)
+                            }
+                        }
+                    }
                 },
                 timer : null,
                 socketid0 : null,
@@ -336,10 +347,10 @@ ddong.on('connection', (socket) => {
                 if(param.playerNo==='player0'){
                     //console.log("0 r")
                     data.p0_x += 10
-                    if(data.p0_x + Cons.PADDLE_SIZE > Cons.RIGHT) data.p0_x = Cons.RIGHT-Cons.PADDLE_SIZE
+                    if(data.p0_x + Cons.PADDLE_SIZE > Cons.RIGHT) data.p0_x = Cons.RIGHT-Cons.CHAR_SIZE
                 } else if(param.playerNo==='player1') {
                     data.p1_x += 10
-                    if(data.p1_x + Cons.PADDLE_SIZE > Cons.RIGHT) data.p1_x = Cons.RIGHT-Cons.PADDLE_SIZE
+                    if(data.p1_x + Cons.PADDLE_SIZE > Cons.RIGHT) data.p1_x = Cons.RIGHT-Cons.CHAR_SIZE
                     //console.log("1 r")
                 } 
                 break;

@@ -27,6 +27,8 @@ if( document.getElementById("divPlayerNo0") != null ){
 
 
 const btnStart = document.getElementById("start")
+const divPlayer0 : HTMLDivElement = document.getElementById("player0_char") as HTMLDivElement | null
+const divPlayer1 : HTMLDivElement = document.getElementById("player1_char") as HTMLDivElement | null
 // div  영역 설정 //
 const ddongGameDiv : HTMLDivElement = document.getElementById("ddongGameBoard") as HTMLDivElement | null
 
@@ -40,39 +42,52 @@ const Cons = {
     RIGHT : 410,
     TOP : 10,
     BOTTOM : 510,
-    PADDLE_SIZE : 80,
-    PLAYER_TOP : 480, // 30-50
 }
 
 // // *******화면을 현재 gameData로 update ******
 const updateGameBoard = () :void  => {
-    // 현재 있는 똥 그림을 지우고
+    // 없어진 똥 그림을 지우고
     const imgsOld = ddongGameDiv.querySelectorAll('#ddongGameBoard img')
+    let bExist : boolean
     for(let imgOld of imgsOld){
-        ddongGameDiv.removeChild(imgOld.parentElement)
+        bExist = false
+        for(let xxx of gameData.ddongs){
+            if(imgOld.id === xxx.id){
+                bExist= true 
+                break
+            } 
+        }
+        if(!bExist) ddongGameDiv.removeChild(imgOld.parentElement)     
     }
 
-    // 모든 똥 그림을 그림
+    // 없으면 새로 만들고, 있으면 이동
     for(let xxx  of gameData.ddongs){
-        const div : HTMLDivElement = document.createElement('div') as HTMLDivElement | null
-        const img : HTMLImageElement = document.createElement('img') as HTMLImageElement | null
-        img.src = "/image/ddong.png"; 
-        img.alt = 'ddong'
-        img.width = xxx.width
-        img.height = xxx.height 
-        // div.setAttribute("position", "absolute")
-        // div.setAttribute("top", "" + xxx.top + "px" )
-        // div.setAttribute("left", "" + xxx.left + "px" )
-        // div.setAttribute("right", "" + (xxx.left + xxx.width) + "px")
-        // div.setAttribute("bottom", ""+ (xxx.top+xxx.height)+"px")
-        div.style.position = "absolute"
-        div.style.left = "" + xxx.left + "px"
-        div.style.top = "" + xxx.top + "px"
-        div.style.width = "" + xxx.width + "px"
-        div.style.height = "" + xxx.height + "px"
-        div.appendChild(img)
-        ddongGameDiv.appendChild(div);
+        const currentDiv : HTMLDivElement = document.getElementById(xxx.id) as HTMLDivElement | null
+        if(currentDiv==null){
+            const div : HTMLDivElement = document.createElement('div') as HTMLDivElement | null
+            const img : HTMLImageElement = document.createElement('img') as HTMLImageElement | null
+            img.src = "/image/ddong.png"; 
+            img.alt = 'ddong'
+            img.width = xxx.width
+            img.height = xxx.height 
+            div.setAttribute("id", xxx.id)
+            div.style.position = "absolute"
+            div.style.left = "" + xxx.left + "px"
+            div.style.top = "" + xxx.top + "px"
+            div.style.width = "" + xxx.width + "px"
+            div.style.height = "" + xxx.height + "px"
+            div.appendChild(img)
+            ddongGameDiv.appendChild(div);
+        } else {
+            currentDiv.style.top = "" + xxx.top + "px"
+        }
+        
     }
+
+    // char 위치 이동
+    divPlayer0.style.left = "" + gameData.p0_x + "px"
+    divPlayer1.style.left = "" + gameData.p1_x + "px"
+
 }
 
 const sendChatMessage = (event) => {
