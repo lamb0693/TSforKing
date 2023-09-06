@@ -10,6 +10,7 @@ const Cons = {
     BOTTOM: 510,
     PADDLE_SIZE: 80,
     PLAYER_TOP: 480,
+    CHAR_SIZE: 30,
     DDONG_MIN_SPEED: 5,
     DDONG_MAX_SPEED: 10,
     DDONG_MAX_SIZE: 30,
@@ -189,9 +190,19 @@ ddong.on('connection', (socket) => {
                     }
                     data.ddongs = data.ddongs.filter((xxx) => (xxx.top < 480));
                     data.count++;
-                    // 게임 진행 과정
                     //console.log("callback : " + roomName)
                     ddong.to(roomName).emit('gameData', data);
+                    // 충돌 체크 및 end game
+                    for (let xxx of data.ddongs) {
+                        if (xxx.top > 440) {
+                            if (xxx.left < (data.p0_x + Cons.CHAR_SIZE) && xxx.left > (data.p0_x - Cons.CHAR_SIZE)) {
+                                endGame("player1", data.roomName);
+                            }
+                            else if (xxx.left < (data.p1_x + Cons.CHAR_SIZE) && xxx.left > (data.p1_x - Cons.CHAR_SIZE)) {
+                                endGame("player0", data.roomName);
+                            }
+                        }
+                    }
                 },
                 timer: null,
                 socketid0: null,
@@ -310,12 +321,12 @@ ddong.on('connection', (socket) => {
                     //console.log("0 r")
                     data.p0_x += 10;
                     if (data.p0_x + Cons.PADDLE_SIZE > Cons.RIGHT)
-                        data.p0_x = Cons.RIGHT - Cons.PADDLE_SIZE;
+                        data.p0_x = Cons.RIGHT - Cons.CHAR_SIZE;
                 }
                 else if (param.playerNo === 'player1') {
                     data.p1_x += 10;
                     if (data.p1_x + Cons.PADDLE_SIZE > Cons.RIGHT)
-                        data.p1_x = Cons.RIGHT - Cons.PADDLE_SIZE;
+                        data.p1_x = Cons.RIGHT - Cons.CHAR_SIZE;
                     //console.log("1 r")
                 }
                 break;

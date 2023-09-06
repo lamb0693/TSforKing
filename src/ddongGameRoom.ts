@@ -27,6 +27,8 @@ if( document.getElementById("divPlayerNo0") != null ){
 
 
 const btnStart = document.getElementById("start")
+const divPlayer0 : HTMLDivElement = document.getElementById("player0_char") as HTMLDivElement | null
+const divPlayer1 : HTMLDivElement = document.getElementById("player1_char") as HTMLDivElement | null
 // div  영역 설정 //
 const ddongGameDiv : HTMLDivElement = document.getElementById("ddongGameBoard") as HTMLDivElement | null
 
@@ -81,6 +83,11 @@ const updateGameBoard = () :void  => {
         }
         
     }
+
+    // char 위치 이동
+    divPlayer0.style.left = "" + gameData.p0_x + "px"
+    divPlayer1.style.left = "" + gameData.p1_x + "px"
+
 }
 
 const sendChatMessage = (event) => {

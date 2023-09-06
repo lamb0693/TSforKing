@@ -20,6 +20,8 @@ else {
     playerNo = document.getElementById("divPlayerNo1").textContent;
 }
 const btnStart = document.getElementById("start");
+const divPlayer0 = document.getElementById("player0_char");
+const divPlayer1 = document.getElementById("player1_char");
 // div  영역 설정 //
 const ddongGameDiv = document.getElementById("ddongGameBoard");
 const btnSendMessage = document.getElementById("btnSendMessage");
@@ -71,6 +73,9 @@ const updateGameBoard = () => {
             currentDiv.style.top = "" + xxx.top + "px";
         }
     }
+    // char 위치 이동
+    divPlayer0.style.left = "" + gameData.p0_x + "px";
+    divPlayer1.style.left = "" + gameData.p1_x + "px";
 };
 const sendChatMessage = (event) => {
     event.preventDefault();
