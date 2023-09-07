@@ -51,12 +51,18 @@ const updateGameBoard = () :void  => {
     let bExist : boolean
     for(let imgOld of imgsOld){
         bExist = false
-        for(let xxx of gameData.ddongs){
-            if(imgOld.id === xxx.id){
-                bExist= true 
-                break
-            } 
+        // char  인지 체크  다음 존재하는지 체크
+        if( (imgOld.id === "img_char0") || (imgOld.id === "img_char1") ) {
+            bExist = true;
+        } else {
+            for(let xxx of gameData.ddongs){
+                if(imgOld.id === xxx.id){
+                    bExist= true 
+                    break
+                } 
+            }
         }
+
         if(!bExist) ddongGameDiv.removeChild(imgOld.parentElement)     
     }
 
