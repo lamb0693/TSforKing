@@ -15,7 +15,7 @@ const Cons = {
     DDONG_MAX_SPEED: 10,
     DDONG_MAX_SIZE: 30,
     GAME_SPEED: 100,
-    MAKE_DDONG_INTERVAL: 30
+    MAKE_DDONG_INTERVAL: 15
 };
 //*********game 관련 data ********** */
 const mapGameData = {};

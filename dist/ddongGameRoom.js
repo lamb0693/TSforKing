@@ -1,4 +1,4 @@
-//const { io } = require("socket.io");
+const { io } = require("socket.io");
 let playerNo;
 //추가
 const userId = document.getElementById("userId");
@@ -239,4 +239,4 @@ socket.on('winner', function (result) {
     }
     window.location.href = "/ddong/waitingroom";
 });
-//export {};
+export {};
