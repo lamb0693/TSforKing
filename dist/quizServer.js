@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 // fetch 시  IPV4 우선 사용 설정 아니면 error
 const dns = require('node:dns');
 dns.setDefaultResultOrder('ipv4first');
+const QUIZ_SERVER_IP = "http://10.100.203.29:8080"
 const Cons = {};
 const JWT_TOKEN = "Bearer:" + process.argv[2];
 //*********game 관련 data ********** */
@@ -154,7 +155,7 @@ quiz.on('connection', (socket) => {
         quiz.to(roonName).emit('winner', gameResult); // 승패 결과는 client에서 올림
     };
     const setProblem = (roomName) => {
-        const resultProm = fetch("http://localhost:8080/quiz/token/getquiz", {
+        const resultProm = fetch(QUIZ_SERVER_IP + "/quiz/token/getquiz", {
             method: "GET",
             credentials: "include",
             headers: {
@@ -344,4 +345,3 @@ console.log(JWT_TOKEN);
 server.listen(3002, () => {
     console.log("Quiz Server listening...3002");
 });
-//export {};

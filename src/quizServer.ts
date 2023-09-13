@@ -6,10 +6,12 @@ const { Server } = require("socket.io");
 // fetch 시  IPV4 우선 사용 설정 아니면 error
 const dns= require('node:dns');
 dns.setDefaultResultOrder('ipv4first');
-// ****
+
+
 
 import { QuizDataType, GameDataMap, QuizType, SelAnswerParamType } from "./quizDataType";
 import { StartGameParamType, gameActionParamType, ChatParaType, GameResultParaType } from "./commonType";
+import { QUIZ_SERVER_IP } from "./serverUrl";  // // const QUIZ_SERVER_IP = "http://10.100.203.29:8080"
 
 const Cons = {
 }
@@ -178,7 +180,7 @@ quiz.on('connection', (socket) => {
     }
 
     const setProblem = (roomName : string) : void =>  {
-        const resultProm  = fetch("http://localhost:8080/quiz/token/getquiz", {
+        const resultProm  = fetch(QUIZ_SERVER_IP + "/quiz/token/getquiz", {
             method : "GET",
             credentials: "include",
             headers: {
